@@ -19,6 +19,6 @@ typedef enum GROUP_ERR{
     
 } GROUP_ERR ;
 
-Group *GroupCreate(char* _name);
+Group *GroupCreate(char* _name, char* _ipv4Address, int _port);
 
 void GroupDestroy(Group** _group);

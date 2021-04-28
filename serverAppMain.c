@@ -24,5 +24,5 @@ int main(void)
 
     ServerAppRun(myApp);
 
-    ServerDestroy(&myApp);
+    ServerAppDestroy(&myApp);
 }

@@ -299,7 +299,7 @@ static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* 
     switch (addResult)
     {
     case USER_MNG_USER_EXISTS:
-        SendAppResp(_serverApp, _clientID, REG_REC, APP_USER_EXISTS);
+        SendAppResp(_serverApp, _clientID, REG_REC, USER_EXISTS);
         break;
     case USER_MNG_USER_ADDED:
         SendAppResp(_serverApp, _clientID, REG_REC, USER_CREATED);

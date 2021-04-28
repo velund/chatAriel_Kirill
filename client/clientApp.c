@@ -101,7 +101,8 @@ CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtype, Client *_client, char* _userName
 void treatServerResponse(MSG_RESPONSE _unpckdMsg)
 {
 	switch (_unpckdMsg)
-	{
+	{	
+		/* Register: */
 		case USER_CREATED:
 			printf("user created successfully\n");
 			break;
@@ -114,9 +115,16 @@ void treatServerResponse(MSG_RESPONSE _unpckdMsg)
 	    case PASS_TOO_SHORT:
 		printf("password too short\n");
 			break;
+
+		/* Login: */
+		case USER_CONNECTED:
+			printf("Connected Successfully\n");
+			break;
 	    case PASS_INCORRECT:
 		printf("incorrect password\n");
 			break;
+
+			
 	    case GEN_ERROR:
 		printf("reneral error\n");
 			break;

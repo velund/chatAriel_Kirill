@@ -4,6 +4,8 @@
 #include <netinet/in.h> /* IPPROTO_IP, sockaddr_in, htons() */
 #include <stdio.h> /* perror() */
 #include <errno.h> /* perror() */
+#include <unistd.h> /* close() */
+#include <arpa/inet.h> /* inet_addr */
 
 #include "group.h"
 
@@ -22,19 +24,22 @@ struct Group{
 
 /* ------------ HELPER FUNCTIONS PROTOTYPES ------------ */
 
+static int GroupGetListenSocket(Group* _newGroup); /* returns INTERN_SUCCESS or INTERN_FAIL */
 static void SetPortReusable(int _groupSocket);
+static int InitGroupParameters(Group* _newGroup, char* _name, char* _ipv4Address, int _port);
+static int InitGroupComm(Group* _newGroup);
 
 /* ------------------------------------- Main FUNCTIONS ------------------------------------- */
 
 Group *GroupCreate(char* _name, char* _ipv4Address, int _port)
 {
     Group* newGroup;
-
+    
     if(_name == NULL || strlen(_name) < MIN_GROUP_NAME_LENGTH || strlen(_name) > MAX_GROUP_NAME_LENGTH || _ipv4Address == NULL || _port < MIN_PORT_NUM)
     {
         return NULL;
     }
-
+    
     newGroup = malloc(sizeof(Group));
     if(newGroup == NULL)
     {
@@ -46,7 +51,7 @@ Group *GroupCreate(char* _name, char* _ipv4Address, int _port)
         free(newGroup);
         return NULL;
     }
-
+    
     SetPortReusable(newGroup->m_socket);
 
     if(InitGroupParameters(newGroup, _name, _ipv4Address, _port))
@@ -109,6 +114,7 @@ static int InitGroupParameters(Group* _newGroup, char* _name, char* _ipv4Address
     strcpy(_newGroup->m_name, _name);
     strcpy(_newGroup->m_ipv4Address, _ipv4Address);
     _newGroup->m_port = _port;
+    return INTERN_SUCCESS;
 }
 
 static int InitGroupComm(Group* _newGroup)

@@ -14,5 +14,7 @@ int main(void)
     }
     registerClient(myClient, "Kirill", "1234565"); /* 2+ 1+ 6 + 1 + 5 = 15*/
 
+    LoginClient(myClient, "Kirill", "1234565");
+
     return 0;
 }
