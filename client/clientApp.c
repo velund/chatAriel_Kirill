@@ -115,7 +115,6 @@ void treatServerResponse(MSG_RESPONSE _unpckdMsg)
 	    case PASS_TOO_SHORT:
 		printf("password too short\n");
 			break;
-
 		/* Login: */
 		case USER_CONNECTED:
 			printf("Connected Successfully\n");
@@ -123,10 +122,9 @@ void treatServerResponse(MSG_RESPONSE _unpckdMsg)
 	    case PASS_INCORRECT:
 		printf("incorrect password\n");
 			break;
-
 			
 	    case GEN_ERROR:
-		printf("reneral error\n");
+		printf("General error\n");
 			break;
 		default:
 			printf("unknown response msg\n");
