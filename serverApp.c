@@ -2,6 +2,7 @@
 #include <string.h> /* memcpy() */
 #include <stdlib.h> /* malloc(), free() */ 
 #include <stdio.h>
+#include <unistd.h> /* usleep() */
 
 #include "HashMap.h"
 #include "server.h"
@@ -11,6 +12,8 @@
 #include "groupMng.h"
 
 #include "serverAPPUI.h"
+
+#define USLEEP_WAIT 200
 
 
 struct ServerApp{
@@ -459,6 +462,7 @@ static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _m
     {
     case GROUP_MNG_SUCCESS:
         SendAppResp(_serverApp, _clientID, GROUP_CREATE_REC, GROUP_CREATED);
+        usleep(USLEEP_WAIT);
         SendGroupDetails(_serverApp, _clientID, groupIP, groupPort);
         UIGroupCreated(groupName, groupIP, groupPort);
         break;
@@ -473,7 +477,7 @@ static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _m
 static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
 {
     USER_MNG_ERR joinRes;
-    
+
 }
 
 static void SendGroupDetails(ServerApp* _serverApp, int _clientID, char* _ip, int _port)

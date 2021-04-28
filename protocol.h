@@ -84,6 +84,14 @@ typedef enum MSG_RESPONSE{
     GROUP_CREATED,
     GROUP_CREATE_FAIL,
 
+     /* group join */
+    GROUP_JOINED,
+    GROUP_JOIN_FAIL,
+
+     /* group leave */
+    GROUP_LEFT,
+    GROUP_LEAVE_FAIL,
+
     GEN_ERROR,
 
     MSG_RES_MAX
