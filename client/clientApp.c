@@ -225,7 +225,7 @@ CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_g
 
 CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port)
 {
-	char *recieveBuffer[256];
+	char recieveBuffer[256];
 	int bytesRecieved;
 	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, recieveBuffer, &bytesRecieved) != CLIENT_NET_OK ) 
 	{ 
