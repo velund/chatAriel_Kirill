@@ -161,9 +161,9 @@ PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, MSG_RESPONSE _res ,char* 
     Byte addrLen, portLen;
     char portStr[PORT_SIZE];
 
-    if(_type >= MAX_MSG_TYPE || _ipv4Addr == NULL)
+    if(_type >= MAX_MSG_TYPE || _ipv4Addr == NULL || _type != GROUP_CREATED || _type != GROUP_JOINED)
     {
-        return NULL;   
+        return NULL;
     }
 
     addrLen = strlen(_ipv4Addr);

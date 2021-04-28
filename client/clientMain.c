@@ -16,5 +16,7 @@ int main(void)
 
     LoginClient(myClient, "Kirill", "1234565");
 
+    createGroup(myClient, "myGroup");
+
     return 0;
 }

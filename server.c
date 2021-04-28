@@ -165,7 +165,7 @@ TCP_ERROR ServerSend(TCPServer* _server, int _clientID, char* _buffer, size_t _m
 {
     size_t sentBytes;
     sentBytes = send(_clientID, _buffer, _msgSize , 0);
-
+    printf("sent %d", sentBytes);
     if ( sentBytes < 0)
     {
         _server->m_appFunc.m_failFunc(TCP_SEND_FAIL, _server->m_appFunc.m_failContext);

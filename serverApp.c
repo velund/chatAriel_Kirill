@@ -22,7 +22,7 @@
 
 #define CLIENT_HASH_SIZE 50
 #define USER_MNG_SIZE 50
-#define GROUPS_MAX 30
+#define GROUPS_MAX 100
 
 struct ServerApp{
     TCPServer* m_serverNet;
@@ -82,7 +82,7 @@ static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _m
 static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 
-static void SendGroupDetails(ServerApp* _serverApp, int _clientID, char* _ip, int _port);
+static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res, int _clientID, char* _ip, int _port);
 
 /* NewClient() */
 static APP_INTERN_ERR AddConnectedServerClient(ServerApp* _serverApp, ClientInfo _newClientInfo);
@@ -508,7 +508,7 @@ static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _m
     switch (createRes)
     {
     case GROUP_MNG_SUCCESS:
-        SendGroupDetails(_serverApp, _clientID, groupIP, groupPort);
+        SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort);
         UIGroupCreated(groupName, groupIP, groupPort);
         break;
 
@@ -538,10 +538,9 @@ static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg
 
     switch (joinRes)
     {
-    case GROUP_MNG_SUCCESS:
+    case GROUP_MNG_SUCCESS: /* TODO: fix message */
         SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GROUP_JOINED);
-        usleep(USLEEP_WAIT);
-        SendGroupDetails(_serverApp, _clientID, groupIP, groupPort);
+        SendGroupDetails(_serverApp, GROUP_JOINED,_clientID, groupIP, groupPort);
         UIGroupJoined(_clientID, groupName, groupIP, groupPort);
         break;
 
@@ -582,15 +581,15 @@ static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, int _clientID, char* _ms
 /*---------------------------------------- Send Functions ----------------------------------------*/
 
 
-static void SendGroupDetails(ServerApp* _serverApp, int _clientID, char* _ip, int _port)
+static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res,int _clientID, char* _ip, int _port)
 {
     PackedMessage msg;
     size_t pckMsgSize;
 
-    msg = ProtocolPackGroupDetails(GROUP_CREATE_REC, _ip, _port, &pckMsgSize);
+    msg = ProtocolPackGroupDetails(GROUP_CREATE_REC, _res, _ip, _port, &pckMsgSize);
 
     ServerSend(_serverApp->m_serverNet,_clientID, msg, pckMsgSize);
-
+    printf("step\n");
     ProtocolPackedMsgDestroy(msg);
 }
 
