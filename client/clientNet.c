@@ -32,9 +32,6 @@ struct Group
 void initAddr(struct sockaddr_in *_serverAddr, char *_ip, int _port);
 /* end assist funcs */
 
-
-
-
 clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port)
 {
 	Group *group;
@@ -43,7 +40,7 @@ clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port)
 	if (group == NULL) { return GROUP_MALLOC_FAILED; }
 	strcpy(group->m_grpName, _grpName);
 	initAddr(&(group->m_groupAddr), _ip, _port);
-	ListPushTail(_client->m_connectedGroups, (void*)group); /* check pushTail return */
+	if ( (ListPushTail(_client->m_connectedGroups, (void*)group)) != SUCCESS) { return GROUP_NOT }
 	return CLIENT_NET_OK; 
 }
 
@@ -76,15 +73,14 @@ clientNetErr sendMsg(int _client_socket, char *_messageFromClient, size_t _msgLe
 {
 	int sent_bytes=0;
 	sent_bytes = send(_client_socket, _messageFromClient, _msgLen, 0);
-	printf("send bytes = %d \n", sent_bytes);
 	if (sent_bytes < 0){ return SEND_FAIL; }
 	return CLIENT_NET_OK;
 }
 
-clientNetErr recvMsg(int _client_socket, int _maxMsgSize, char *_msgFromServer)
+clientNetErr recvMsg(int _client_socket, int _maxMsgSize, char *_msgFromServer,  int *_bytesRecieved)
 {
-	int read_bytes;
-	read_bytes = recv(_client_socket, _msgFromServer, _maxMsgSize, 0);
+	
+	*_bytesRecieved = recv(_client_socket, _msgFromServer, _maxMsgSize, 0);
 	/* 
 		while check != full { do recv }
 		PROTOCOL_ERR ProtocolCheck(PackedMessage _packMsg, size_t _rcvMsgSize); 
@@ -93,7 +89,8 @@ clientNetErr recvMsg(int _client_socket, int _maxMsgSize, char *_msgFromServer)
 		tmp_buffer = malloc(size = read_bytes)
 		memcpy(client_buffer+end of last part, tmp) agregate information
 	*/
-	if (read_bytes < 0) { return RECV_FAIL; }
+	if (*_bytesRecieved < 0) { return RECV_FAIL; }
+	
 	return CLIENT_NET_OK;
 }
 

@@ -27,7 +27,8 @@ typedef enum clientNetErr
 Client *connectClient();
 void disconnect(Client **_client);
 clientNetErr sendMsg(int _client_socket, char *_messageFromClient, size_t _msgLen);
-clientNetErr recvMsg(int _client_socket, int _maxMsgSize, char *_msgFromServer);
+clientNetErr recvMsg(int _client_socket, int _maxMsgSize, char *_msgFromServer, int *_bytesRecieved);
+clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port);
 /* getter */
 int getClientSocket(Client *_client );
 #endif /* __CLIENTNET_H__ */

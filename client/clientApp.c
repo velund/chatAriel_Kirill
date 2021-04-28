@@ -12,6 +12,7 @@
 #include "clientNet.h"
 #include "../protocol.h"
 #include "../vector.h"
+#include "chatOpener.h"
 #define RECIEVE_BUFFER_SIZE 256
 #define IPV4_ADDR_LEN 25
 /* assist funccs */
@@ -19,6 +20,9 @@ void treatServerResponse(MSG_RESPONSE _unpckdMsg);
 CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _userName, char* _userPass);
 CLIENT_APP_ERR checkStartTalkParams(Client *_client, char* _userName, char* _userPass);
 CLIENT_APP_ERR groupsRequest(Client *_client, MSG_TYPE _msgtypeToSend, MSG_TYPE _msgtypeToRecv, char *_grpName, MSG_RESPONSE *_unpckdMsg);
+CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port);
+CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_grpName);
+
 /* end assist funcs */
 
 Client *createClientConnection()
@@ -50,64 +54,45 @@ CLIENT_APP_ERR LogOutClient(Client *_client, char* _userName)
 	PackedMessage pckdMsg;
 	size_t msgSize;
 	CLIENT_APP_ERR check;
+	int bytesRecieved;
 	if ( (check =  checkStartTalkParams(_client, _userName,  _userName )) != CLIENT_APP_OK ) { return check; }
 	pckdMsg = ProtocolPackUserName(LOGOUT_REQ, _userName, &msgSize);	
 	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
-	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg) != CLIENT_NET_OK ) 
+	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg, &bytesRecieved) != CLIENT_NET_OK ) 
 	{ 
 		return RECVING_FAIL;
 	} 
-	unpckdMsg = ProtocolUnpackRespMsg(pckdMsg); /* enum in protocol */
+	unpckdMsg = ProtocolUnpackRespMsg(pckdMsg); 
 	treatServerResponse(unpckdMsg);
 	ProtocolPackedMsgDestroy(pckdMsg);
 	return CLIENT_APP_OK;
 }
 
-CLIENT_APP_ERR sendMessage()
-{
-
-}
-
 CLIENT_APP_ERR createGroup(Client *_client, char *_grpName)
 {
 	MSG_RESPONSE unpckdMsg;
-	PackedMessage pckdMsg;
-	size_t msgSize;
-	CLIENT_APP_ERR check;
 	char grpIp[IPV4_ADDR_LEN];
 	int grpPort;
-	/* TODO: sendMsg(), recv+unpack()  */
+	size_t msgSize;
+	CLIENT_APP_ERR check;
+
 	if ( ( check = checkGroupsParams(_client, _grpName) ) != CLIENT_APP_OK )
 	{
 		return check;
 	}
-	pckdMsg = ProtocolPackGroupName(GROUP_CREATE_REQ, _grpName, &msgSize);
-	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
-	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg) != CLIENT_NET_OK ) 
-	{ 
-		return RECVING_FAIL;
-	} 
-	if ( ProtocolGetMsgResponse(pckdMsg) != GROUP_CREATED ) { return GROUP_CREATE_MSG_RESP_FAILURE; }
-	ProtocolUnpackGroupDetails(pckdMsg, grpIp, &grpPort);
-	ProtocolPackedMsgDestroy(pckdMsg);
+	if ( (check = sendMessageGroupReq(_client, GROUP_CREATE_REQ, _grpName)) !=  CLIENT_APP_OK) { return check; }
+	if ( (check = recieveMsgGroupReq(_client, grpIp, &grpPort)) != CLIENT_APP_OK ) { return check; }
 	if ( (addGroupToClientNet(_client, _grpName, grpIp, grpPort)) !=  CLIENT_APP_OK) 
 	{ return GROUP_ADDING_TO_CLIENT_NET_FAILURE; }
 
-	openChat(grpIp, grpPort);
-
+	openChat(grpIp, grpPort, _grpName);
 	return CLIENT_APP_OK;
 } /*if ok joinGroup()  */
 void getGroups(Client *_client)
 {
 	Vector *groupsList = VectorCreate(10, 10);
-	PackedMessage pckdMsg;
-	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg) != CLIENT_NET_OK ) 
-	{ 
-		return RECVING_FAIL;
-	}
-	ProtocolUnpackGroupList(groupsList);
-	showGroups(groupsList); /* UI function */
 
+	showGroups(groupsList); /* UI function */
 
 	/*showGroups(_client);*/
 } /* call showGroups((UI)) */
@@ -152,12 +137,12 @@ CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _us
 	PackedMessage pckdMsg;
 	size_t msgSize;
 	CLIENT_APP_ERR check;
+	int bytesRecieved;
 	if ( (check =  checkStartTalkParams(_client, _userName,  _userPass )) != CLIENT_APP_OK ) { return check; }
 	pckdMsg = ProtocolPackUserDetails(_msgtypeToSend, _userName, _userPass, &msgSize);	
-	printf("size %d\n", msgSize);
 
 	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
-	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg) != CLIENT_NET_OK ) { return RECVING_FAIL; }
+	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg, &bytesRecieved) != CLIENT_NET_OK ) { return RECVING_FAIL; }
 	unpckdMsg = ProtocolUnpackRespMsg(pckdMsg); /* enum in protocol */
 	treatServerResponse(unpckdMsg);
 	ProtocolPackedMsgDestroy(pckdMsg);
@@ -203,10 +188,11 @@ CLIENT_APP_ERR groupsRequest(Client *_client, MSG_TYPE _msgtypeToSend, MSG_TYPE 
 	
 	size_t msgSize;
 	PackedMessage pckdMsg;
+	int bytesRecieved;
 	if (_grpName == NULL) { return NAME_NULL_POINTER; }
 	pckdMsg = ProtocolPackGroupName(_msgtypeToSend, _grpName, &msgSize);
 	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
-	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg) != CLIENT_NET_OK ) 
+	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg, &bytesRecieved) != CLIENT_NET_OK ) 
 	{ 
 		return RECVING_FAIL;
 	} 
@@ -225,5 +211,39 @@ CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpI
 		return GROUP_CREATION_FAILURE;
 	}
 	return 	CLIENT_APP_OK;
+}
+
+CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_grpName)
+{
+	PackedMessage pckdMsg;
+	size_t msgSize;
+	pckdMsg = ProtocolPackGroupName(GROUP_CREATE_REQ, _grpName, &msgSize);
+	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
+	ProtocolPackedMsgDestroy(pckdMsg);
+	return CLIENT_APP_OK;
+}
+
+CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port)
+{
+	char *recieveBuffer[256];
+	int bytesRecieved;
+	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, recieveBuffer, &bytesRecieved) != CLIENT_NET_OK ) 
+	{ 
+		return RECVING_FAIL;
+	} 
+	if ( ProtocolGetMsgResponse(recieveBuffer) != GROUP_CREATED ) { return GROUP_CREATE_MSG_RESP_FAILURE; }
+	ProtocolUnpackGroupDetails(recieveBuffer,_ip, _port);
+	return CLIENT_APP_OK;
+}
+
+CLIENT_APP_ERR recieveGroupsVector(Client *_client, Vector *_vector)
+{
+	char buffer[256];
+	int bytesRecieved;
+	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, buffer, &bytesRecieved) != CLIENT_NET_OK ) 
+	{ 
+		return RECVING_FAIL;
+	}
+	
 }
 /*end assist funcs */
