@@ -48,9 +48,13 @@ typedef enum MSG_TYPE{
     LOGIN_REC,
     LOGOUT_REC,
 
-    GROUP_CREATE,
-    GROUP_JOIN,
-    GROUP_LEAVE,
+    GROUP_CREATE_REQ,
+    GROUP_JOIN_REQ,
+    GROUP_LEAVE_REQ,
+
+    GROUP_CREATE_REC,
+    GROUP_JOIN_REC,
+    GROUP_LEAVE_REC,
 
     MSG_TYPE_ERR,
     MAX_MSG_TYPE
@@ -73,9 +77,12 @@ typedef enum MSG_RESPONSE{
     USER_NOT_FOUND,
     USER_CONNECTED,
 
-    /* Login */
+    /* logout */
     USER_DISCONNECTED,
     
+    /* group create */
+    GROUP_CREATED,
+    GROUP_CREATE_FAIL,
 
     GEN_ERROR,
 

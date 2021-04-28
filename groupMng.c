@@ -135,6 +135,7 @@ GROUP_MNG_ERR GroupMngAdd(GroupMng* _groupMng, char* _groupName, char* _ipOutput
     return GROUP_MNG_SUCCESS;
 }
 
+
 GROUP_MNG_ERR GroupMngRemove(GroupMng* _groupMng, char* _groupName)
 {
     Group* wantedGroup;

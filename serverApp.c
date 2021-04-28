@@ -47,6 +47,7 @@ typedef enum APP_INTERN_ERR{
 
 #define CLIENT_HASH_SIZE 50
 #define USER_MNG_SIZE 50
+#define GROUPS_MAX 30
 
 /*---------------------------------------- Helper Functions ----------------------------------------*/
 
@@ -71,6 +72,11 @@ static void SendAppResp( ServerApp* _serverApp, int _clientID, MSG_TYPE _type, M
 static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
+
+static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
+
+
+static void SendGroupDetails(ServerApp* _serverApp, int _clientID, char* _ip, int _port);
 
 /* NewClient() */
 static APP_INTERN_ERR AddConnectedServerClient(ServerApp* _serverApp, ClientInfo _newClientInfo);
@@ -101,6 +107,7 @@ ServerApp* ServerAppCreate(ServerInfo _serInfo)
     newApp->m_connectedClients = HashMapCreate(CLIENT_HASH_SIZE, HashClientKey, HashClientEquality);
     if(newApp->m_connectedClients == NULL)
     {
+        ServerDestroy(&newApp->m_serverNet);
         free(newApp);
         return NULL;
     }
@@ -108,6 +115,18 @@ ServerApp* ServerAppCreate(ServerInfo _serInfo)
     newApp->m_userMng = UserMngCreate(USER_MNG_SIZE);
     if(newApp->m_userMng == NULL)
     {
+        HashMapDestroy(&newApp->m_connectedClients, NULL, NULL);
+        ServerDestroy(&newApp->m_serverNet);
+        free(newApp);
+        return NULL;
+    }
+
+    newApp->m_groupMng = GroupMngCreate(GROUPS_MAX);
+    if(newApp->m_groupMng == NULL)
+    {
+        UserMngDestroy(&newApp->m_userMng);
+        HashMapDestroy(&newApp->m_connectedClients, NULL, NULL);
+        ServerDestroy(&newApp->m_serverNet);
         free(newApp);
         return NULL;
     }
@@ -129,6 +148,7 @@ void ServerAppDestroy(ServerApp** _app)
 
 int ServerAppRun(ServerApp* _app)
 {
+    UIServerStart();
     ServerRun(_app->m_serverNet);
 }
 
@@ -303,15 +323,15 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
         LogoutUser(_serverApp, _clientID, _msg, _msgSize);
         break;
 
-    case GROUP_CREATE:
-        /* code */
+    case GROUP_CREATE_REQ:
+        CreateGroup(_serverApp, _clientID, _msg, _msgSize);
         break;
 
-    case GROUP_JOIN:
-        /* code */
+    case GROUP_JOIN_REQ:
+        JoinGroup(_serverApp, _clientID, _msg, _msgSize);
         break;
 
-    case GROUP_LEAVE:
+    case GROUP_LEAVE_REQ:
         /* code */
         break;
 
@@ -322,6 +342,9 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
     }
 }
 
+
+/* -------- Users -------- */
+
 static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
 {
     USER_MNG_ERR addResult;
@@ -331,6 +354,7 @@ static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* 
     if( ProtocolUnpackUserDetails(_msg, userName, userPass) != PROTOCOL_SUCCESS)
     {
         SendAppResp(_serverApp, _clientID, REG_REC, GEN_ERROR);
+        UIMsgRcvErr();
         return;
     }
     
@@ -340,9 +364,11 @@ static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* 
     {
     case USER_MNG_USER_EXISTS:
         SendAppResp(_serverApp, _clientID, REG_REC, USER_EXISTS);
+        UIUserExistsRegErr(userName);
         break;
     case USER_MNG_USER_ADDED:
         SendAppResp(_serverApp, _clientID, REG_REC, USER_CREATED);
+        UIUserCreated(userName);
         break;
     default:
         SendAppResp(_serverApp, _clientID, REG_REC, GEN_ERROR);
@@ -412,32 +438,54 @@ static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _ms
     }
 }
 
+
+/* -------- GROUPS -------- */
+
 static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
 {
     USER_MNG_ERR createRes;
     char groupName[GROUP_NAME_LENGTH];
+    char groupIP[IPV4_ADDRESS_SIZE];
+    int groupPort;
 
     if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
     {
         return MSG_READ_ERR;
     }
 
-    createRes = GroupMngAdd(_serverApp.)
+    createRes = GroupMngAdd(_serverApp->m_groupMng, groupName, groupIP, &groupPort);
 
-    switch (logoutRes)
+    switch (createRes)
     {
-    case USER_MNG_USER_NOT_FOUND:
-        SendAppResp(_serverApp, _clientID, LOGOUT_REC, USER_NOT_FOUND);
-        break;
-    
-    case USER_MNG_SUCCESS:
-        SendAppResp(_serverApp, _clientID, LOGOUT_REC, USER_DISCONNECTED);
+    case GROUP_MNG_SUCCESS:
+        SendAppResp(_serverApp, _clientID, GROUP_CREATE_REC, GROUP_CREATED);
+        SendGroupDetails(_serverApp, _clientID, groupIP, groupPort);
+        UIGroupCreated(groupName, groupIP, groupPort);
         break;
 
     default:
-        SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
+        SendAppResp(_serverApp, _clientID, GROUP_CREATE_REC, GROUP_CREATE_FAIL);
         break;
     }
+}
+
+
+static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+{
+    USER_MNG_ERR joinRes;
+    
+}
+
+static void SendGroupDetails(ServerApp* _serverApp, int _clientID, char* _ip, int _port)
+{
+    PackedMessage msg;
+    size_t pckMsgSize;
+
+    msg = ProtocolPackGroupDetails(GROUP_CREATE_REC, _ip, _port, &pckMsgSize);
+
+    ServerSend(_serverApp->m_serverNet,_clientID, msg, pckMsgSize);
+
+    ProtocolPackedMsgDestroy(msg);
 }
 
 static void SendAppResp( ServerApp* _serverApp, int _clientID, MSG_TYPE _type, MSG_RESPONSE _response)
