@@ -12,11 +12,14 @@ typedef struct Group Group;
 
 typedef enum clientNetErr
 {
-	OK,
+	CLIENT_NET_OK,
 	SEND_FAIL,
 	RECV_FAIL,
 	SOCKET_OPENING_FAIL,
-	CONNECTION_FAIL
+	CONNECTION_FAIL,
+
+	INCORRECT_ARGS_OF_ADD_GROUP,
+	GROUP_MALLOC_FAILED
 
 
 } clientNetErr;

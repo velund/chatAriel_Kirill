@@ -24,35 +24,31 @@
 	#include <net/if.h>
 	#include <stdarg.h>
 	#include <netinet/in.h>
+	#include <unistd.h>
 
 #define MSGBUFSIZE 256
-/*char *str;
-strcat(str, argv[1]);
-system(str);*/
-int main(int argc, char *argv[]) 
+
+
+int main(int argc, char const *argv[])
 {
-	char* groupAddr;
+	char groupAddr[30];
 	int groupPort;
 	struct sockaddr_in addr;
 	unsigned int addrLen = sizeof(addr);
 	struct ip_mreq mreq;
 	int yes = 1;
-	char message[MSGBUFSIZE];
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	strcpy(groupAddr, argv[1]);
+	sleep(10);
+	sscanf(argv[2], "%d", &groupPort);
+	printf("ip: %s, port: %d\n",groupAddr , groupPort);
 	if (fd < 0) 
 	{
-		perror("socket creation failure\n");
+		perror("socket");
 		return 1;
 	}
-	if (argc != 3) 
-	{
-	   	perror("Command line args should be multicast group and groupPort\n");
-		return 1;
-	}
-
-	groupAddr = argv[1]; // e.g. 239.255.255.250 for SSDP
-	groupPort = atoi(argv[2]); // 0 if error, which is an invalid groupPort
 	/*allow multiple sockets to use the same PORT number*/
+	
 	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,  &yes, sizeof(yes)) < 0)
 	{
 	   perror("Reusing ADDR failed");
@@ -63,8 +59,8 @@ int main(int argc, char *argv[])
 	
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr("224.0.0.1"); 
-	addr.sin_port = htons(1026);
+	addr.sin_addr.s_addr = inet_addr(groupAddr); 
+	addr.sin_port = htons(groupPort);
 
 	/*bind to receive address*/
 	
@@ -73,28 +69,30 @@ int main(int argc, char *argv[])
 		return 1;
 	} 
 
-	/* use setsockopt() to request that the kernel join a multicast groupAddr*/
-	mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.1");
+	/* use setsockopt() to request that the kernel join a multicast group*/
+	
+	mreq.imr_multiaddr.s_addr = inet_addr(groupAddr);
 	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,  &mreq, sizeof(mreq)) < 0)
 	{
-		perror("setsockopt");
+		perror("setsockopt\n");
 		return 1;
 	}
 
 	while (1) 
 	{
-		char message[MSGBUFSIZE];
+		char msgbuf[MSGBUFSIZE];
 		int addrlen = sizeof(addr);
-		int nbytes = recvfrom(fd,message,MSGBUFSIZE,0,(struct sockaddr *) &addr,&addrLen);
+		int nbytes = recvfrom(fd,msgbuf,MSGBUFSIZE,0,(struct sockaddr *) &addr,&addrLen);
 		if (nbytes < 0) 
 		{
 			perror("recvfrom");
 			return 1;
 		}
-		message[nbytes] = '\0';
-		puts(message); /* ui function(message) */
-		putchar('\n');
+		msgbuf[nbytes] = '\0';
+		puts(msgbuf);
+		
+		fflush(stdin);
 	 }
 
 	return 0;
