@@ -34,8 +34,8 @@ int GroupMngHashEquality(void *_name1, void* _name2);
 /* Create  */
 static Queue* CreateFreeAddrQ(size_t _numOfAddress);
 static void DestroyAddrQ(Queue** _addrQ);
-static char* CreateAddr(char* _addr);
-static void DestroyAddrInQ(void* _addr);
+char* CreateAddr(char* _addr);
+void DestroyAddrInQ(void* _addr);
 
 /* Destroy */
 void GroupMngHashGroupKeyNameDestroy(void* _name);
@@ -71,11 +71,10 @@ GroupMng* GroupMngCreate(size_t _maxGroupsNum)
     newGroupMng->m_freeAddr = CreateFreeAddrQ(_maxGroupsNum);
     if(newGroupMng->m_freeAddr == NULL)
     {
-        HashMapDestroy(&newGroupMng->m_groups, NULL, NULL);
+        HashMapDestroy(&newGroupMng->m_groups, NULL, NULL); /* TODO: Problem destroying */
         free(newGroupMng);
         return NULL;
     }
-
     return newGroupMng;
 }
 
@@ -208,8 +207,10 @@ static Queue* CreateFreeAddrQ(size_t _numOfAddress)
 {
     size_t i;
     Queue* freeAddrQ;
-    char addrBase[IPV4_STRING_SIZE] = "224.0.0.";
+
+    char addrBase[] = "224.0.0.";
     char addrFinal[IPV4_STRING_SIZE];
+
     int addAddressInt;
     char addAddressCh[3];
 
@@ -219,21 +220,23 @@ static Queue* CreateFreeAddrQ(size_t _numOfAddress)
         return NULL;
     }
 
-    for(i = 0, addAddressInt = 1; i <= _numOfAddress; i++, addAddressInt++)
+    for(i = 0, addAddressInt = 1; i < _numOfAddress; i++, addAddressInt++)
     {
         strcpy(addrFinal, addrBase);
+
         sprintf(addAddressCh, "%d", addAddressInt);
+
         strcat(addrFinal, addAddressCh);
         if( QueueInsert(freeAddrQ, (void*)CreateAddr(addrFinal)) != QUEUE_SUCCESS)
         {
-            QueueDestroy(&freeAddrQ, DestroyAddrInQ);
+            QueueDestroy(&freeAddrQ, DestroyAddrInQ); 
             return NULL;
         }
     }
     return freeAddrQ;
 }
 
-static char* CreateAddr(char* _addr)
+char* CreateAddr(char* _addr)
 {
     char* newAddr;
 
@@ -259,7 +262,7 @@ void GroupMngHashGroupValDestroy(void* _group)
     GroupDestroy((Group**)&_group);
 }
 
-static void DestroyAddrInQ(void* _addr)
+void DestroyAddrInQ(void* _addr)
 {
     if(_addr == NULL)
     {

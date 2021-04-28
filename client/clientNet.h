@@ -4,7 +4,7 @@
 #include <stdlib.h> /*  size_t */
 
 
-#define SERVER_IP "127.0.0.1"
+#define SERVER_IP "192.168.1.109"
 #define SERVER_PORT 8080 
 
 typedef struct Client Client;
@@ -19,9 +19,9 @@ typedef enum clientNetErr
 	CONNECTION_FAIL,
 
 	INCORRECT_ARGS_OF_ADD_GROUP,
-	GROUP_MALLOC_FAILED
+	GROUP_MALLOC_FAILED,
 
-
+	GROUP_NOT_CREATED
 } clientNetErr;
 
 Client *connectClient();

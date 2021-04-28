@@ -22,6 +22,9 @@ CLIENT_APP_ERR checkStartTalkParams(Client *_client, char* _userName, char* _use
 CLIENT_APP_ERR groupsRequest(Client *_client, MSG_TYPE _msgtypeToSend, MSG_TYPE _msgtypeToRecv, char *_grpName, MSG_RESPONSE *_unpckdMsg);
 CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port);
 CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_grpName);
+CLIENT_APP_ERR checkGroupsParams(Client *_client, char *_grpName);
+CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpIp, int _grpPort );
+
 
 /* end assist funcs */
 
@@ -85,14 +88,14 @@ CLIENT_APP_ERR createGroup(Client *_client, char *_grpName)
 	if ( (addGroupToClientNet(_client, _grpName, grpIp, grpPort)) !=  CLIENT_APP_OK) 
 	{ return GROUP_ADDING_TO_CLIENT_NET_FAILURE; }
 
-	openChat(grpIp, grpPort, _grpName);
+	openChat(grpIp, grpPort, "Kirill", _grpName); /* TODO: get user name */
 	return CLIENT_APP_OK;
 } /*if ok joinGroup()  */
 void getGroups(Client *_client)
 {
 	Vector *groupsList = VectorCreate(10, 10);
 
-	showGroups(groupsList); /* UI function */
+	/*showGroups(groupsList);*/ /* UI function */
 
 	/*showGroups(_client);*/
 } /* call showGroups((UI)) */
@@ -112,7 +115,7 @@ CLIENT_APP_ERR leaveGroup(Client *_client, char *_grpName)
 	CLIENT_APP_ERR check;
 	if ( (check = groupsRequest(_client, GROUP_LEAVE_REQ, GROUP_LEAVE_REC, _grpName, &unpckdMsg) ) != CLIENT_APP_OK )
 	{ return  check;} 
-	killMains();
+	/*killMains();*/
 	return CLIENT_APP_OK;
 }
 

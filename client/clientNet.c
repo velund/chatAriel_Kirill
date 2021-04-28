@@ -10,10 +10,14 @@
 #include <arpa/inet.h> /* inet_addr() */
 
 #include "clientNet.h"
+/*
 #include "list/DoubleLinkedListGeneric/DoubleLL/ADTErr.h"
 #include "list/DoubleLinkedListGeneric/DoubleLL/DoubleLL.h"
 #include "list/DoubleLinkedListGeneric/DoubleLLItr/DoubleLLItr.h"
-#include "list/DoubleLinkedListGeneric/DoubleLLItr/DoubleLLItr2.h"
+#include "list/DoubleLinkedListGeneric/DoubleLLItr/DoubleLLItr2.h"*/
+
+#include "list.h"
+
 #define GROUP_NAME_LEN 20
 struct Client
 {
@@ -36,11 +40,11 @@ clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port)
 {
 	Group *group;
 	if (_grpName == NULL || _ip == NULL || _port < 1025) { return INCORRECT_ARGS_OF_ADD_GROUP; }
-	group = (Group*)malloc(sizeof(Group));
+	group = malloc(sizeof(Group));
 	if (group == NULL) { return GROUP_MALLOC_FAILED; }
 	strcpy(group->m_grpName, _grpName);
 	initAddr(&(group->m_groupAddr), _ip, _port);
-	if ( (ListPushTail(_client->m_connectedGroups, (void*)group)) != SUCCESS) { return GROUP_NOT }
+	if ( (ListPushTail(_client->m_connectedGroups, (void*)group)) != LIST_SUCCESS) { return GROUP_NOT_CREATED ;}
 	return CLIENT_NET_OK; 
 }
 
@@ -52,6 +56,11 @@ Client *connectClient()
 	if (client == NULL) { return NULL; }
 	client->m_buffer = NULL;
 	client->m_connectedGroups = ListCreate();
+	if(client->m_connectedGroups == NULL)
+	{
+		free(client);
+		return NULL;
+	}
 	client->m_clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if (client->m_clientSocket < 0) { free(client); return NULL; }
 	
@@ -112,7 +121,7 @@ int getClientSocket(Client *_client)
 
 void setGroupName(Group *_gr, char *_grName)
 {
-	_gr->m_grpName = _grName; 
+	strcpy(_gr->m_grpName, _grName);
 }
 void setGroupAddr(Group *_gr, char *_grIp, int _grPort)
 {
