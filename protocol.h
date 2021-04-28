@@ -34,6 +34,8 @@ typedef enum PROTOCOL_ERR {
     PROTOCOL_PACK_ERR,
     PROTOCOL_MSG_NOT_INITALIZED,
     
+    PROTOCOL_UNPACK_GROUP_ERR,
+    
     PROTOCOL_MSG_FULL,
     PROTOCOL_MSG_PART
 } PROTOCOL_ERR;
@@ -106,7 +108,7 @@ MSG_RESPONSE ProtocolGetMsgResponse(PackedMessage _packedMsg); /* TODO: */
 
 PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Addr, int* _port);
 
-
+PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize);
 
 PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, char* _ipv4Addr, int _port, size_t *_pckMsgSize);
 
@@ -116,10 +118,10 @@ PackedMessage ProtocolPackGroupName(MSG_TYPE _type, char* _groupName, size_t *_p
 PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName);
 
 
+PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize);
 
 
-
-PROTOCOL_ERR ProtocolUnpackGroupList(Vector* _saveListTo);
+PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, size_t msgSize, Vector* _saveListTo);
 
 
 /*

@@ -4,9 +4,12 @@
 #include <arpa/inet.h> /*  */
 #include <stdio.h> /* sprintf() */ 
 
+#include "string.h"
 #include "protocol.h"
 
-
+/*
+TODO: Encrypt, List of groups
+*/
 /*
     @WARNING:
         Packed message length parameter is original message size + header size + lengths!
@@ -25,9 +28,11 @@
     GroupName
     [MSG_TYPE][Whole Msg Length][GroupNameLength][GroupName(No '\0')]
 
-    GroupIPPort - sends port as string
-    [MSG_TYPE][Whole Msg Length][IPV4Length][IPV4(No '\0')][PORTLENGTH][PORT(No '\0')]
+    GroupIPPort - sends port as string + sends confirm message
+    [MSG_TYPE][Whole Msg Length][CREATED/FAIL/JOINED/FAIL][IPV4Length][IPV4(No '\0')][PORTLENGTH][PORT(No '\0')]
 
+    GroupList
+    [MSG_TYPE][Whole Msg Length][GroupNumber][Len][Group][Len][Group]...
 */
 
 typedef char Byte;
@@ -46,6 +51,41 @@ typedef char Byte;
 
 
 /* ------------------------- Main Functions ------------------------- */
+
+
+MSG_RESPONSE ProtocolGetMsgResponse(PackedMessage _packedMsg)
+{
+    MSG_RESPONSE response;
+
+    if(_packedMsg == NULL)
+    {
+        return GEN_ERROR;
+    }
+
+    return (MSG_RESPONSE)(_packedMsg[2]);
+}
+
+PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize)
+{
+    PackedMessage packedMsg;
+}
+
+PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, size_t msgSize, Vector* _saveListTo)
+{
+    /* [MSG_TYPE][Whole Msg Length][GroupNumber][Len][Group][Len][Group]... */
+    size_t i = 3;
+    char* groupName;
+
+    if(_saveListTo == NULL || _packedMsg == NULL || msgSize < 4)
+    {
+        return PROTOCOL_MSG_NOT_INITALIZED;
+    }
+
+    while(i < msgSize)
+    {
+        
+    }
+}
 
 PackedMessage ProtocolPackUserDetails(MSG_TYPE _type, char* _userName, char* _userPass, size_t *_pckMsgSize)
 {
@@ -66,7 +106,6 @@ PackedMessage ProtocolPackUserDetails(MSG_TYPE _type, char* _userName, char* _us
         return NULL;
     }    
 
-    /*InitPackHeader(packedMsg, _type, HEAD_BYTES + nameLen + passLen + 2 * LENGTH_BYTES);*/
     packedMsg[0] = (Byte)_type;
     packedMsg[1] = (Byte)( HEAD_BYTES + nameLen + passLen + 2);
 
@@ -82,13 +121,14 @@ PackedMessage ProtocolPackUserDetails(MSG_TYPE _type, char* _userName, char* _us
     return packedMsg;
 }
 
-PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, char* _ipv4Addr, int _port, size_t *_pckMsgSize)
+
+PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, char* _ipv4Addr, int _port, size_t *_pckMsgSize) /* Sends group details on success only! */
 {
     PackedMessage packedMsg;
     Byte addrLen, portLen;
     char portStr[PORT_SIZE];
 
-    if(_type >= MAX_MSG_TYPE || _ipv4Addr == NULL)
+    if(_type >= MAX_MSG_TYPE || _ipv4Addr == NULL || _type != GROUP_CREATED || _type != GROUP_JOINED)
     {
         return NULL;
     }
@@ -98,7 +138,7 @@ PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, char* _ipv4Addr, int _por
     sprintf(portStr, "%d", _port);
     portLen = strlen(portStr);
 
-    packedMsg = malloc( sizeof(Byte) * HEAD_BYTES + ((addrLen + portLen) * sizeof(char)) + 2 * LENGTH_BYTES * sizeof(Byte));
+    packedMsg = malloc( sizeof(Byte) * HEAD_BYTES + ((addrLen + portLen) * sizeof(char)) + 2 * LENGTH_BYTES * sizeof(Byte) + MSG_RSP_BYTES * sizeof(Byte));
     if(packedMsg == NULL)
     {
         return NULL;
@@ -106,15 +146,15 @@ PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, char* _ipv4Addr, int _por
 
     packedMsg[0] = (Byte)_type;
     packedMsg[1] = (Byte)( HEAD_BYTES + addrLen + portLen + 2 * LENGTH_BYTES);
+    packedMsg[2] = _type;
 
+    packedMsg[3] = addrLen;
+    strncpy(&packedMsg[4], _ipv4Addr, addrLen);
 
-    packedMsg[2] = addrLen;
-    strncpy(&packedMsg[3], _ipv4Addr, addrLen);
+    packedMsg[4 + addrLen] = portLen;
+    strncpy(&packedMsg[4 + addrLen + 1], portStr, portLen);
 
-    packedMsg[3 + addrLen] = portLen;
-    strncpy(&packedMsg[3 + addrLen + 1], portStr, portLen);
-
-    *_pckMsgSize = 2 + addrLen + portLen + 2 * LENGTH_BYTES; /* in Bytes! */
+    *_pckMsgSize = 2 + addrLen + portLen + 2 * LENGTH_BYTES + MSG_RSP_BYTES; /* in Bytes! */
 
     return packedMsg;
 }
@@ -128,14 +168,18 @@ PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Add
     {
         return PROTOCOL_MSG_NOT_INITALIZED;
     }
+    if(_packedMsg[2] != GROUP_CREATED && _packedMsg[2] != GROUP_JOINED)
+    {
+        return PROTOCOL_UNPACK_GROUP_ERR;
+    }
 
-    addrLen = _packedMsg[2];
-    portLen = _packedMsg[3 + addrLen];
+    addrLen = _packedMsg[3];
+    portLen = _packedMsg[4 + addrLen];
 
-    strncpy(_ipv4Addr, &_packedMsg[3], addrLen);
+    strncpy(_ipv4Addr, &_packedMsg[4], addrLen);
     _ipv4Addr[addrLen] = '\0';
 
-    strncpy(portStr, &_packedMsg[3 + addrLen + 1], portLen);
+    strncpy(portStr, &_packedMsg[4 + addrLen + 1], portLen);
     portStr[portLen] = '\0';
 
     sscanf(portStr, "%d", _port);

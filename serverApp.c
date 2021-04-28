@@ -80,6 +80,7 @@ static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _ms
 
 static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
+static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 
 static void SendGroupDetails(ServerApp* _serverApp, int _clientID, char* _ip, int _port);
 
@@ -187,15 +188,22 @@ void GotMessageFunc(TCPServer* _server, int _clientID, char* _msg, size_t _msgSi
     {
         return;
     }
-    TreatMsg( (ServerApp*)_serverApp, _clientID, _msg, _msgSize); /* TODO: Should i get error? */
+    TreatMsg( (ServerApp*)_serverApp, _clientID, _msg, _msgSize); /* TODO:  list of groups */
 }  
 
 void CloseClientFunc(TCPServer* _server, int _clientID, void* _serverApp) /* TODO: client will send leave group */
 {
+    ConnectedClient* client;
 
+    if( HashMapFind (((ServerApp*)_serverApp)->m_connectedClients, (void*)&_clientID, (void**)&client) != MAP_SUCCESS )
+    {
+        return;
+    }
+    ConnClientDestroy(&client);
+    
 }  
 
-SRVR_RUN_ACT FailFunc(TCP_ERROR _error, void* _serverApp)
+SRVR_RUN_ACT FailFunc(TCP_ERROR _error, void* _serverApp) /* TODO: treat error? how? */ 
 {
     
 }
@@ -500,8 +508,6 @@ static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _m
     switch (createRes)
     {
     case GROUP_MNG_SUCCESS:
-        SendAppResp(_serverApp, _clientID, GROUP_CREATE_REC, GROUP_CREATED);
-        usleep(USLEEP_WAIT);
         SendGroupDetails(_serverApp, _clientID, groupIP, groupPort);
         UIGroupCreated(groupName, groupIP, groupPort);
         break;
@@ -567,7 +573,7 @@ static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, int _clientID, char* _ms
         break;
 
     default:
-        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GROUP_JOIN_FAIL);
+        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GROUP_LEAVE_FAIL);
         break;
     }
 }   
