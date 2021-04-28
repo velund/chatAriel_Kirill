@@ -32,7 +32,7 @@ TODO: Encrypt, List of groups
     [MSG_TYPE][Whole Msg Length][CREATED/FAIL/JOINED/FAIL][IPV4Length][IPV4(No '\0')][PORTLENGTH][PORT(No '\0')]
 
     GroupList
-    [MSG_TYPE][Whole Msg Length][GroupNumber][Len][Group][Len][Group]...
+    [MSG_TYPE][Whole Msg Length][GROUP_LIST_SUCCESS/GROUP_LIST_FAIL][GroupNumber][Len][Group][Len][Group]...
 */
 
 typedef char Byte;
@@ -43,7 +43,7 @@ typedef char Byte;
 #define PORT_SIZE 8
 
 #define MAX_CHAR_NUM 255
-
+#define GROUP_NAME_SIZE 15
 
 
 /* ------------------------- Helper Functions Prototypes ------------------------- */
@@ -68,22 +68,55 @@ MSG_RESPONSE ProtocolGetMsgResponse(PackedMessage _packedMsg)
 PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize)
 {
     PackedMessage packedMsg;
+    size_t msgSize = 3, groupNum = 0, i = 4; /* firstLen */
+    char* groupName;
+
+    if(_groupList == NULL || _pckMsgSize == NULL)
+    {
+        return NULL;
+    }
+
+    packedMsg = malloc(sizeof(Byte) * 250); /* alloc size?? */
+    if(packedMsg == NULL)
+    {
+        return NULL;
+    }
+
+    packedMsg[0] = (Byte)GROUP_LIST_REC;
+
+    packedMsg[2] = (Byte)GROUP_LIST_SUCCESS;
+
+    while(VectorRemove(_groupList, (void**)&groupName) == VECTOR_SUCCESS)
+    {
+        packedMsg[i] = strlen(groupName);
+        strncpy(&packedMsg[i + 1], groupName, packedMsg[i]);
+        i += (1 + packedMsg[i]);
+        groupNum++;
+    }
+
+    msgSize = (Byte)(i - 1);
+    packedMsg[1] = (Byte)msgSize;
+    packedMsg[3] = (Byte)groupNum;
+
+    return packedMsg;
 }
+/* [MSG_TYPE][Whole Msg Length][GROUP_LIST_SUCCESS/GROUP_LIST_FAIL][GroupNumber][Len][Group][Len][Group]... */
 
 PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, size_t msgSize, Vector* _saveListTo)
 {
-    /* [MSG_TYPE][Whole Msg Length][GroupNumber][Len][Group][Len][Group]... */
-    size_t i = 3;
-    char* groupName;
+    size_t i = 5; /* first char of first name */
+    char groupName[GROUP_NAME_SIZE];
 
     if(_saveListTo == NULL || _packedMsg == NULL || msgSize < 4)
     {
         return PROTOCOL_MSG_NOT_INITALIZED;
     }
-
+    /* add \0 */
     while(i < msgSize)
     {
-        
+        strncpy(groupName, &_packedMsg[i], _packedMsg[i - 1]);
+
+        i += _packedMsg[i - 1];
     }
 }
 

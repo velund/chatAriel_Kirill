@@ -60,6 +60,10 @@ typedef enum MSG_TYPE{
     GROUP_JOIN_REC,
     GROUP_LEAVE_REC,
 
+    GROUP_LIST_REQ,
+    
+    GROUP_LIST_REC,
+
     MSG_TYPE_ERR,
     MAX_MSG_TYPE
 } MSG_TYPE ;
@@ -96,6 +100,9 @@ typedef enum MSG_RESPONSE{
     GROUP_LEFT,
     GROUP_LEAVE_FAIL,
 
+    GROUP_LIST_SUCCESS,
+    GROUP_LIST_FAIL,
+
     GEN_ERROR,
 
     MSG_RES_MAX
@@ -104,7 +111,7 @@ typedef enum MSG_RESPONSE{
 /*-------------------------- Functions declarations -------------------------*/
 
 
-MSG_RESPONSE ProtocolGetMsgResponse(PackedMessage _packedMsg); /* TODO: */
+MSG_RESPONSE ProtocolGetMsgResponse(PackedMessage _packedMsg); 
 
 PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Addr, int* _port);
 
