@@ -32,7 +32,9 @@ typedef enum TCP_ERROR{
     TCP_CLIENTS_HANDELD,
     TCP_CLIENT_RCV_ERROR,
 
-    TCP_SEND_FAIL
+    TCP_SEND_FAIL,
+    
+    TCP_CLOSE_FAIL
 } TCP_ERROR ;
 
 typedef enum SRVR_RUN_ACT{
@@ -138,6 +140,12 @@ TCP_ERROR ServerRun(TCPServer* _server);
 */
 TCP_ERROR ServerSend(TCPServer* _server, int _clientID, char* _buffer, size_t _msgSize);
 
-
+/*
+ * Description: Close a given client connection
+ * Inputs: Server pointer, client's ID,
+ * Outputs: TCP_SUCCESS on success.
+ * Errors: TCP_CLOSE_FAIL if failed.
+*/
+TCP_ERROR ServerClientClose(TCPServer* _server, int _clientID);
 
 #endif /* __SERVER_H__ */

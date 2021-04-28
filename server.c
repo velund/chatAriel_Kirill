@@ -161,31 +161,28 @@ TCP_ERROR ServerRun(TCPServer* _server)
     return TCP_SERVER_STOPPED;
 }
 
-void PrintAllS(char* _buffer, size_t _size)
-{
-    int i;
-    printf("%d, %d, %d" ,_buffer[0], _buffer[1], _buffer[2]);
-    for(i = 3; i < _size; i++)
-    {
-        putchar(_buffer[i]);
-        
-        
-    }
-    putchar('\n');
-}
-
 TCP_ERROR ServerSend(TCPServer* _server, int _clientID, char* _buffer, size_t _msgSize)
 {
     size_t sentBytes;
     sentBytes = send(_clientID, _buffer, _msgSize , 0);
-    
-    PrintAllS(_buffer, _msgSize);
-    printf(" id %d,  server sent %d \n", _clientID, sentBytes);
 
     if ( sentBytes < 0)
     {
         _server->m_appFunc.m_failFunc(TCP_SEND_FAIL, _server->m_appFunc.m_failContext);
         return TCP_SEND_FAIL;
+    }
+    return TCP_SUCCESS;
+}
+
+TCP_ERROR ServerClientClose(TCPServer* _server, int _clientID)
+{
+    if(_server == NULL)
+    {
+        return TCP_NOT_INITALIZED;
+    }
+    if(close(_clientID) != 0)
+    {
+        return TCP_CLOSE_FAIL;
     }
     return TCP_SUCCESS;
 }

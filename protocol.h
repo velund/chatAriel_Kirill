@@ -37,6 +37,9 @@ typedef enum PROTOCOL_ERR {
 } PROTOCOL_ERR;
 
 typedef enum MSG_TYPE{
+    CONN_REQ,
+    CONN_REC,
+
     REG_REQ,
     LOGIN_REQ,
     LOGOUT_REQ,
@@ -54,15 +57,23 @@ typedef enum MSG_TYPE{
 } MSG_TYPE ;
 
 typedef enum MSG_RESPONSE{
+
+    /* Connection To Server */
+    CONN_SUCCESS,
+    CONN_FAIL,
+    
+    /* Registration */
     USER_CREATED,
     USER_EXISTS,
     USER_NAME_TOO_SHORT,
     PASS_TOO_SHORT,
 
+    /* Login */
     PASS_INCORRECT,
     USER_NOT_FOUND,
     USER_CONNECTED,
 
+    /* Login */
     USER_DISCONNECTED,
     
 

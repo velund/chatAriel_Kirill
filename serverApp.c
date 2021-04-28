@@ -9,6 +9,8 @@
 #include "protocol.h"
 #include "userMng.h"
 
+#include "serverAPPUI.h"
+
 
 struct ServerApp{
     TCPServer* m_serverNet;
@@ -17,7 +19,7 @@ struct ServerApp{
 } ;
 
 typedef struct ConnectedClient{
-    int m_clientID;
+    ClientInfo m_clientInfo;
     char* m_tempBuffer; /* initalized as NULL */ 
 } ConnectedClient;
 
@@ -30,7 +32,11 @@ typedef enum APP_INTERN_ERR{
 
     APP_USER_EXISTS,
     USER_REGISTERED,
-    USER_FAIL
+    USER_FAIL,
+
+    /* New client() */
+    CLIENT_ADD_FAIL,
+    CLIENT_ADD_SUCCESS
 } APP_INTERN_ERR;
 
 #define USER_NAME_LENGTH 20
@@ -41,24 +47,30 @@ typedef enum APP_INTERN_ERR{
 
 /*---------------------------------------- Helper Functions ----------------------------------------*/
 
+/* HashMap */
 size_t HashClientKey(void* _clientID);
 int HashClientEquality(void* _clientID1, void* _clientID2);
 static void ConnClientHashKeyDestroy(void *_key);
 static void ConnClientHashDestroy(void *_connClient);
 
+/* Server App Create */
 static AppFunctions CreateFunc(ServerApp* _serverApp);
 
-static ConnectedClient* ConnClientCreate(int _clientID);
+/* Create New connected client  */
+static ConnectedClient* ConnClientCreate(ClientInfo _clientInfo);
 static void ConnClientDestroy(ConnectedClient** _client);
 
+/* New Message() */
 static APP_INTERN_ERR CheckMsg(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
+static void SendAppResp( ServerApp* _serverApp, int _clientID, MSG_TYPE _type, MSG_RESPONSE _response);
 
 static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 
-static void SendAppResp( ServerApp* _serverApp, int _clientID, MSG_TYPE _type, MSG_RESPONSE _response);
+/* NewClient() */
+static APP_INTERN_ERR AddConnectedServerClient(ServerApp* _serverApp, ClientInfo _newClientInfo);
 
 
 /*---------------------------------------- Main Functions ----------------------------------------*/
@@ -122,10 +134,22 @@ int ServerAppRun(ServerApp* _app)
 
 /*---------------------------------------- TCP Server Functions ----------------------------------------*/
 
-void NewClientFunc(TCPServer* _server, ClientInfo _newClientInfo, void* _serverApp)
+void NewClientFunc(TCPServer* _server, ClientInfo _newClientInfo, void* _serverApp) /* Adds the new client to hashmap and sends back success or fail to client */
 {
-    
+    if(AddConnectedServerClient( (ServerApp*)_serverApp, _newClientInfo) != CLIENT_ADD_SUCCESS)
+    {
+        if ( ServerClientClose(_server, _newClientInfo.m_clientID) != TCP_SUCCESS )
+        {
+            UIClientConnFail(_newClientInfo);
+        }
+        SendAppResp(_serverApp, _newClientInfo.m_clientID, CONN_REC, CONN_FAIL);
+        return;
+    }
+    SendAppResp(_serverApp, _newClientInfo.m_clientID, CONN_REC, CONN_SUCCESS);
+    UIClientConnSuccess(_newClientInfo);
 }
+
+
 
 void GotMessageFunc(TCPServer* _server, int _clientID, char* _msg, size_t _msgSize, void* _serverApp) /* TODO: combined half message with prev one if needed */
 {
@@ -150,7 +174,35 @@ SRVR_RUN_ACT FailFunc(TCP_ERROR _error, void* _serverApp)
     
 }
 
+/*---------------------------------------- TCP Server Helper Functions ----------------------------------------*/
 
+static APP_INTERN_ERR AddConnectedServerClient(ServerApp* _serverApp, ClientInfo _newClientInfo)
+{
+    int *newClientSockKey;
+    ConnectedClient *newClientVal;
+
+    newClientSockKey = malloc(sizeof(int));
+    if(newClientSockKey == NULL)
+    {
+        return CLIENT_ADD_FAIL;
+    }
+    *newClientSockKey = _newClientInfo.m_clientID;
+
+    newClientVal = ConnClientCreate(_newClientInfo);
+    if(newClientVal == NULL)
+    {
+        free(newClientSockKey);
+        return CLIENT_ADD_FAIL;
+    }
+
+    if( HashMapInsert( ((ServerApp*)(_serverApp))->m_connectedClients, (void*)newClientSockKey, (void*)newClientVal) != MAP_SUCCESS )
+    {
+        free(newClientSockKey);
+        ConnClientDestroy(&newClientVal);
+        return CLIENT_ADD_FAIL;
+    }
+    return CLIENT_ADD_SUCCESS;
+}
 
 
 /*---------------------------------------- Helper Functions ----------------------------------------*/
@@ -177,15 +229,17 @@ static AppFunctions CreateFunc(ServerApp* _serverApp)
 
 
 
-static ConnectedClient* ConnClientCreate(int _clientID)
+static ConnectedClient* ConnClientCreate(ClientInfo _clientInfo)
 {
     ConnectedClient* newClient;
+
     newClient = malloc(sizeof(ConnectedClient));
     if(newClient == NULL)
     {
         return NULL;
     }
-    newClient->m_clientID = _clientID;
+
+    newClient->m_clientInfo = _clientInfo;
     newClient->m_tempBuffer = NULL;
     return newClient;
 }
@@ -207,24 +261,11 @@ static void ConnClientDestroy(ConnectedClient** _client)
 
 /*---------------------------------------- Server Helper Functions ----------------------------------------*/
 
-void PrintAll(char* _buffer, size_t _size)
-{
-    int i;
-    printf("%d, %d, %d" ,_buffer[0], _buffer[1], _buffer[2]);
-    for(i = 3; i < _size; i++)
-    {
-        putchar(_buffer[i]);
-        
-        
-    }
-    putchar('\n');
-}
 
 static APP_INTERN_ERR CheckMsg(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
 {
     ConnectedClient* client;
-    printf("size: %d\n ", _msgSize);
-    PrintAll(_msg, 15);
+
     if(ProtocolCheck (_msg, _msgSize) == PROTOCOL_MSG_FULL )
     {
         return SUCCESS;
@@ -244,19 +285,18 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
     
     currentMsgType = ProtocolGetMsgType(_msg);
     
-    
 
     switch (currentMsgType)
     {
-    case REG_REQ:
+    case REG_REQ: /* V */
         RegisterUser(_serverApp, _clientID, _msg, _msgSize);
         break;
     
-    case LOGIN_REQ:
+    case LOGIN_REQ: /* V */
         LoginUser(_serverApp, _clientID, _msg, _msgSize);
         break;
 
-    case LOGOUT_REQ:
+    case LOGOUT_REQ: /* V */
         LogoutUser(_serverApp, _clientID, _msg, _msgSize);
         break;
 
@@ -378,7 +418,6 @@ static void SendAppResp( ServerApp* _serverApp, int _clientID, MSG_TYPE _type, M
     size_t pckMsgSize;
 
     msg = ProtocolPackRespMsg(_type, _response, &pckMsgSize);
-    PrintAll(msg, pckMsgSize); /* print */
     
     ServerSend(_serverApp->m_serverNet,_clientID, msg, pckMsgSize);
 
