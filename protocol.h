@@ -21,6 +21,8 @@
                             4) use ProtocolPackedMsgDestroy() to free memory from given packed message
 *****************************************************************************/
 
+#include "vector.h"
+
 /*---------------------------------- Typedef --------------------------------*/
 
 typedef char* PackedMessage ;
@@ -100,6 +102,25 @@ typedef enum MSG_RESPONSE{
 /*-------------------------- Functions declarations -------------------------*/
 
 
+MSG_RESPONSE ProtocolGetMsgResponse(PackedMessage _packedMsg); /* TODO: */
+
+PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Addr, int* _port);
+
+
+
+PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, char* _ipv4Addr, int _port, size_t *_pckMsgSize);
+
+
+PackedMessage ProtocolPackGroupName(MSG_TYPE _type, char* _groupName, size_t *_pckMsgSize) ;
+
+PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName);
+
+
+
+
+
+PROTOCOL_ERR ProtocolUnpackGroupList(Vector* _saveListTo);
+
 
 /*
  * Description: Pack given user name and password
@@ -108,16 +129,6 @@ typedef enum MSG_RESPONSE{
  * Errors: returns NULL if given paramaters not initalized.
 */
 PackedMessage ProtocolPackUserDetails(MSG_TYPE _type, char* _userName, char* _userPass, size_t *_pckMsgSize) ;
-
-PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, char* _ipv4Addr, int _port, size_t *_pckMsgSize);
-
-PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Addr, int* _port);
-
-PackedMessage ProtocolPackGroupName(MSG_TYPE _type, char* _groupName, size_t *_pckMsgSize) ;
-
-PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName);
-
-MSG_RESPONSE ProtocolGetMsgResponse(PackedMessage _packedMsg);
 
 /*
  * Description: Pack given user name and password
