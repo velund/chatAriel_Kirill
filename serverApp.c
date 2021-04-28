@@ -8,6 +8,7 @@
 #include "serverApp.h"
 #include "protocol.h"
 #include "userMng.h"
+#include "groupMng.h"
 
 #include "serverAPPUI.h"
 
@@ -15,6 +16,7 @@
 struct ServerApp{
     TCPServer* m_serverNet;
     UserMng* m_userMng;
+    GroupMng* m_groupMng;
     HashMap* m_connectedClients;
 } ;
 
@@ -41,6 +43,7 @@ typedef enum APP_INTERN_ERR{
 
 #define USER_NAME_LENGTH 20
 #define USER_PASS_LENGTH 20
+#define GROUP_NAME_LENGTH 20
 
 #define CLIENT_HASH_SIZE 50
 #define USER_MNG_SIZE 50
@@ -324,15 +327,12 @@ static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* 
     USER_MNG_ERR addResult;
     char userName[USER_NAME_LENGTH], userPass[USER_PASS_LENGTH];
 
-    printf("RegisterUnpack\n");
 
     if( ProtocolUnpackUserDetails(_msg, userName, userPass) != PROTOCOL_SUCCESS)
     {
         SendAppResp(_serverApp, _clientID, REG_REC, GEN_ERROR);
         return;
     }
-
-    printf("%s %s\n",userName, userPass);
     
     addResult = UserMngAdd(_serverApp->m_userMng, userName, userPass);
 
@@ -348,7 +348,7 @@ static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* 
         SendAppResp(_serverApp, _clientID, REG_REC, GEN_ERROR);
         break;
     }
-    printf("RegisterUnpack\n");
+    
 }
 
 static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
@@ -395,6 +395,34 @@ static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _ms
     }
 
     logoutRes = UserMngDisconnect(_serverApp->m_userMng, userName);
+
+    switch (logoutRes)
+    {
+    case USER_MNG_USER_NOT_FOUND:
+        SendAppResp(_serverApp, _clientID, LOGOUT_REC, USER_NOT_FOUND);
+        break;
+    
+    case USER_MNG_SUCCESS:
+        SendAppResp(_serverApp, _clientID, LOGOUT_REC, USER_DISCONNECTED);
+        break;
+
+    default:
+        SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
+        break;
+    }
+}
+
+static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+{
+    USER_MNG_ERR createRes;
+    char groupName[GROUP_NAME_LENGTH];
+
+    if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
+    {
+        return MSG_READ_ERR;
+    }
+
+    createRes = GroupMngAdd(_serverApp.)
 
     switch (logoutRes)
     {

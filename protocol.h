@@ -93,6 +93,14 @@ typedef enum MSG_RESPONSE{
 */
 PackedMessage ProtocolPackUserDetails(MSG_TYPE _type, char* _userName, char* _userPass, size_t *_pckMsgSize) ;
 
+PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, char* _ipv4Addr, int _port, size_t *_pckMsgSize);
+
+PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Addr, int* _port);
+
+PackedMessage ProtocolPackGroupName(MSG_TYPE _type, char* _groupName, size_t *_pckMsgSize) ;
+
+PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName);
+
 /*
  * Description: Pack given user name and password
  * Inputs: MSG Type, _userName, pointer to save the new size of message to
@@ -100,6 +108,7 @@ PackedMessage ProtocolPackUserDetails(MSG_TYPE _type, char* _userName, char* _us
  * Errors: returns NULL if given paramaters not initalized.
 */
 PackedMessage ProtocolPackUserName(MSG_TYPE _type, char* _userName, size_t *_pckMsgSize) ;
+
 
 
 /*
@@ -150,6 +159,24 @@ PROTOCOL_ERR ProtocolUnpackUserName(PackedMessage _packedMsg, char* _userName);
  * Errors: GEN_ERR if give message not initalized
 */
 MSG_RESPONSE ProtocolUnpackRespMsg(PackedMessage _packedMsg);
+
+
+/*
+ * Description: 
+ * Inputs: 
+ * Outputs: Packed message
+ * Errors: NULL
+*/
+PackedMessage ProtocolPackGroupName(MSG_TYPE _type, char* _groupName, size_t *_pckMsgSize);
+
+/*
+ * Description: Unpack Given packed response message
+ * Inputs: Packed Message pointer
+ * Outputs: PROTOCOL_SUCCESS
+ * Errors: PROTOCOL_MSG_NOT_INITALIZED
+*/
+PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName);
+
 
 /*
  * Description: Check if message received fully

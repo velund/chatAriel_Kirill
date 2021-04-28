@@ -2,6 +2,7 @@
 #include <stdlib.h> /* malloc() */
 #include <string.h> /* memcpy(), strlen() */
 #include <arpa/inet.h> /*  */
+#include <stdio.h> /* sprintf() */ 
 
 #include "protocol.h"
 
@@ -10,7 +11,7 @@
     @WARNING:
         Packed message length parameter is original message size + header size + lengths!
 
-    
+    -- USER ---
     UserDetailsPackedMsg =
     [MSG_TYPE][Whole Msg Length][UserNameLength][UserName(No '\0')][PassLength][Pass(No '\0')]
 
@@ -19,6 +20,14 @@
 
     ResponsePackMsg = 
     [MSG_TYPE][Whole Msg Length][MSG_RESPONSE]
+
+    -- GROUP ---
+    GroupName
+    [MSG_TYPE][Whole Msg Length][GroupNameLength][GroupName(No '\0')]
+
+    GroupIPPort - sends port as string
+    [MSG_TYPE][Whole Msg Length][IPV4Length][IPV4(No '\0')][PORTLENGTH][PORT(No '\0')]
+
 */
 
 typedef char Byte;
@@ -26,6 +35,7 @@ typedef char Byte;
 #define HEAD_BYTES 2 
 #define LENGTH_BYTES 1
 #define MSG_RSP_BYTES 1
+#define PORT_SIZE 8
 
 #define MAX_CHAR_NUM 255
 
@@ -33,7 +43,6 @@ typedef char Byte;
 
 /* ------------------------- Helper Functions Prototypes ------------------------- */
 
-static void InitPackHeader(PackedMessage _pckMsg, MSG_TYPE _type, size_t _msgSize);
 
 
 /* ------------------------- Main Functions ------------------------- */
@@ -73,6 +82,66 @@ PackedMessage ProtocolPackUserDetails(MSG_TYPE _type, char* _userName, char* _us
     return packedMsg;
 }
 
+PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, char* _ipv4Addr, int _port, size_t *_pckMsgSize)
+{
+    PackedMessage packedMsg;
+    Byte addrLen, portLen;
+    char portStr[PORT_SIZE];
+
+    if(_type >= MAX_MSG_TYPE || _ipv4Addr == NULL)
+    {
+        return NULL;
+    }
+
+    addrLen = strlen(_ipv4Addr);
+
+    sprintf(portStr, "%d", _port);
+    portLen = strlen(portStr);
+
+    packedMsg = malloc( sizeof(Byte) * HEAD_BYTES + ((addrLen + portLen) * sizeof(char)) + 2 * LENGTH_BYTES * sizeof(Byte));
+    if(packedMsg == NULL)
+    {
+        return NULL;
+    }    
+
+    packedMsg[0] = (Byte)_type;
+    packedMsg[1] = (Byte)( HEAD_BYTES + addrLen + portLen + 2 * LENGTH_BYTES);
+
+
+    packedMsg[2] = addrLen;
+    strncpy(&packedMsg[3], _ipv4Addr, addrLen);
+
+    packedMsg[3 + addrLen] = portLen;
+    strncpy(&packedMsg[3 + addrLen + 1], portStr, portLen);
+
+    *_pckMsgSize = 2 + addrLen + portLen + 2 * LENGTH_BYTES; /* in Bytes! */
+
+    return packedMsg;
+}
+
+PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Addr, int* _port)
+{
+    char addrLen, portLen;
+    char portStr[PORT_SIZE];
+
+    if(_packedMsg == NULL || _ipv4Addr == NULL || _port == NULL)
+    {
+        return PROTOCOL_MSG_NOT_INITALIZED;
+    }
+
+    addrLen = _packedMsg[2];
+    portLen = _packedMsg[3 + addrLen];
+
+    strncpy(_ipv4Addr, &_packedMsg[3], addrLen);
+    _ipv4Addr[addrLen] = '\0';
+
+    strncpy(portStr, &_packedMsg[3 + addrLen + 1], portLen);
+    portStr[portLen] = '\0';
+
+    sscanf(portStr, "%d", _port);
+
+    return PROTOCOL_SUCCESS;
+}
 
 
 PackedMessage ProtocolPackUserName(MSG_TYPE _type, char* _userName, size_t *_pckMsgSize) 
@@ -93,9 +162,10 @@ PackedMessage ProtocolPackUserName(MSG_TYPE _type, char* _userName, size_t *_pck
         return NULL;
     }
 
-    InitPackHeader(packedMsg, _type, HEAD_BYTES + nameLen + LENGTH_BYTES);
+    packedMsg[0] = (Byte)_type;
+    packedMsg[1] = (Byte)( HEAD_BYTES + LENGTH_BYTES + nameLen);
 
-    packedMsg[HEAD_BYTES] = nameLen;
+    packedMsg[2] = nameLen;
     strncpy(&packedMsg[HEAD_BYTES + LENGTH_BYTES], _userName, nameLen);
     
     *_pckMsgSize = nameLen + HEAD_BYTES + LENGTH_BYTES; /* in Bytes! */
@@ -117,7 +187,9 @@ PackedMessage ProtocolPackRespMsg(MSG_TYPE _type, MSG_RESPONSE _response, size_t
         return NULL;
     }
 
-    InitPackHeader(packedMsg, _type, HEAD_BYTES + MSG_RSP_BYTES);
+    packedMsg[0] = (Byte)_type;
+    packedMsg[1] = (Byte)( HEAD_BYTES + MSG_RSP_BYTES);
+    
     packedMsg[HEAD_BYTES] = (Byte)_response;
 
     *_pckMsgSize = HEAD_BYTES + MSG_RSP_BYTES; /* in Bytes! */
@@ -125,6 +197,52 @@ PackedMessage ProtocolPackRespMsg(MSG_TYPE _type, MSG_RESPONSE _response, size_t
     return packedMsg;
 
 }
+
+PackedMessage ProtocolPackGroupName(MSG_TYPE _type, char* _groupName, size_t *_pckMsgSize) 
+{
+    PackedMessage packedMsg;
+    Byte nameLen;
+
+    if( _type >= MAX_MSG_TYPE || _groupName == NULL || _pckMsgSize == NULL)
+    {
+        return NULL;
+    }
+
+    nameLen = strlen(_groupName);
+
+    packedMsg = malloc( HEAD_BYTES * sizeof(Byte)  + nameLen * sizeof(char) + LENGTH_BYTES * sizeof(Byte) );
+    if(packedMsg == NULL)
+    {
+        return NULL;
+    }
+
+    packedMsg[0] = (Byte)_type;
+    packedMsg[1] = (Byte)( HEAD_BYTES + LENGTH_BYTES + nameLen);
+
+    packedMsg[2] = nameLen;
+    strncpy(&packedMsg[HEAD_BYTES + LENGTH_BYTES], _groupName, nameLen);
+    
+    *_pckMsgSize = nameLen + HEAD_BYTES + LENGTH_BYTES; /* in Bytes! */
+    return packedMsg;
+}
+
+PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName)
+{
+    char nameLen;
+
+    if(_packedMsg == NULL || _groupName == NULL)
+    {
+        return PROTOCOL_MSG_NOT_INITALIZED;
+    }
+
+    nameLen = _packedMsg[HEAD_BYTES];
+
+    strncpy(_groupName, &_packedMsg[HEAD_BYTES + LENGTH_BYTES], nameLen);
+    _groupName[nameLen] = '\0';
+
+    return PROTOCOL_SUCCESS;
+}
+
 
 void ProtocolPackedMsgDestroy(PackedMessage _msg)
 {
@@ -235,9 +353,3 @@ PROTOCOL_ERR ProtocolDecrypt(PackedMessage _Msg, size_t _msgSize)
 
 
 /* ------------------------- Helper Functions ------------------------- */
-
-static void InitPackHeader(PackedMessage _pckMsg, MSG_TYPE _type, size_t _msgSize)
-{
-    _pckMsg[0] = (Byte)_type;
-    _pckMsg[1] = (Byte)( _msgSize);
-}
