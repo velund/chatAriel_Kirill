@@ -100,6 +100,7 @@ typedef enum MSG_RESPONSE{
 /*-------------------------- Functions declarations -------------------------*/
 
 
+
 /*
  * Description: Pack given user name and password
  * Inputs: MSG Type, _userName, and password, pointer to save the new size of message to
@@ -115,6 +116,8 @@ PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Add
 PackedMessage ProtocolPackGroupName(MSG_TYPE _type, char* _groupName, size_t *_pckMsgSize) ;
 
 PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName);
+
+MSG_RESPONSE ProtocolGetMsgResponse(PackedMessage _packedMsg);
 
 /*
  * Description: Pack given user name and password
@@ -150,6 +153,8 @@ void ProtocolPackedMsgDestroy(PackedMessage _msg);
  * Errors: MSG_TYPE_ERR if given message not initalized.
 */
 MSG_TYPE ProtocolGetMsgType(PackedMessage _packedMsg);
+
+
 
 /*
  * Description: Unpack user details from packed message. @ warning - do not use unless Get message type returns REG_REQ or LOGIN_REQ!

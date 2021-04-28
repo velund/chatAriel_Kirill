@@ -14,7 +14,15 @@
 #include "serverAPPUI.h"
 
 #define USLEEP_WAIT 200
+#define TEMP_BUF_SIZE 200
 
+#define USER_NAME_LENGTH 20
+#define USER_PASS_LENGTH 20
+#define GROUP_NAME_LENGTH 20
+
+#define CLIENT_HASH_SIZE 50
+#define USER_MNG_SIZE 50
+#define GROUPS_MAX 30
 
 struct ServerApp{
     TCPServer* m_serverNet;
@@ -25,12 +33,13 @@ struct ServerApp{
 
 typedef struct ConnectedClient{
     ClientInfo m_clientInfo;
+    char userName[USER_NAME_LENGTH];
     char* m_tempBuffer; /* initalized as NULL */ 
 } ConnectedClient;
 
-
 typedef enum APP_INTERN_ERR{
     SUCCESS,
+    GEN_FAIL,
     MSG_SAVED,
     APP_MSG_TYPE_ERR,
     MSG_READ_ERR,
@@ -43,14 +52,6 @@ typedef enum APP_INTERN_ERR{
     CLIENT_ADD_FAIL,
     CLIENT_ADD_SUCCESS
 } APP_INTERN_ERR;
-
-#define USER_NAME_LENGTH 20
-#define USER_PASS_LENGTH 20
-#define GROUP_NAME_LENGTH 20
-
-#define CLIENT_HASH_SIZE 50
-#define USER_MNG_SIZE 50
-#define GROUPS_MAX 30
 
 /*---------------------------------------- Helper Functions ----------------------------------------*/
 
@@ -74,10 +75,11 @@ static void SendAppResp( ServerApp* _serverApp, int _clientID, MSG_TYPE _type, M
 
 static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
+static APP_INTERN_ERR AddUsernameToClient(ServerApp* _serverApp, int _clientID, char* _userName); /* ON login */
 static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 
 static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
-
+static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
 
 static void SendGroupDetails(ServerApp* _serverApp, int _clientID, char* _ip, int _port);
 
@@ -168,10 +170,10 @@ void NewClientFunc(TCPServer* _server, ClientInfo _newClientInfo, void* _serverA
         {
             UIClientConnFail(_newClientInfo);
         }
-        SendAppResp(_serverApp, _newClientInfo.m_clientID, CONN_REC, CONN_FAIL);
+        /*SendAppResp(_serverApp, _newClientInfo.m_clientID, CONN_REC, CONN_FAIL);*/
         return;
     }
-    SendAppResp(_serverApp, _newClientInfo.m_clientID, CONN_REC, CONN_SUCCESS);
+    /*SendAppResp(_serverApp, _newClientInfo.m_clientID, CONN_REC, CONN_SUCCESS);*/
     UIClientConnSuccess(_newClientInfo);
 }
 
@@ -179,21 +181,19 @@ void NewClientFunc(TCPServer* _server, ClientInfo _newClientInfo, void* _serverA
 
 void GotMessageFunc(TCPServer* _server, int _clientID, char* _msg, size_t _msgSize, void* _serverApp) /* TODO: combined half message with prev one if needed */
 {
+    char tempBuffer[TEMP_BUF_SIZE]; /* Needed if msg streamed in few parts from TCP */
+
     if ( CheckMsg ((ServerApp*)_serverApp, _clientID, _msg, _msgSize)  != SUCCESS ) 
     {
         return;
     }
-    if ( TreatMsg( (ServerApp*)_serverApp, _clientID, _msg, _msgSize) )
-    {
-
-    }
-
+    TreatMsg( (ServerApp*)_serverApp, _clientID, _msg, _msgSize); /* TODO: Should i get error? */
 }  
 
-void CloseClientFunc(TCPServer* _server, int _clientID, void* _serverApp)
+void CloseClientFunc(TCPServer* _server, int _clientID, void* _serverApp) /* TODO: client will send leave group */
 {
 
-}
+}  
 
 SRVR_RUN_ACT FailFunc(TCP_ERROR _error, void* _serverApp)
 {
@@ -253,8 +253,6 @@ static AppFunctions CreateFunc(ServerApp* _serverApp)
     return appFunc;
 }
 
-
-
 static ConnectedClient* ConnClientCreate(ClientInfo _clientInfo)
 {
     ConnectedClient* newClient;
@@ -287,6 +285,22 @@ static void ConnClientDestroy(ConnectedClient** _client)
 
 /*---------------------------------------- Server Helper Functions ----------------------------------------*/
 
+static APP_INTERN_ERR CheckClientBuffer(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize, char* _tempBuffer)
+{
+    ConnectedClient* client;
+
+    if( HashMapFind(_serverApp->m_connectedClients, (void*)&_clientID, (void**)&client) != MAP_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, MSG_TYPE_ERR, GEN_ERROR);
+        return GEN_FAIL;
+    }
+
+    if(client->m_tempBuffer != NULL)
+    {
+        
+    }
+}
+
 
 static APP_INTERN_ERR CheckMsg(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
 {
@@ -297,7 +311,11 @@ static APP_INTERN_ERR CheckMsg(ServerApp* _serverApp, int _clientID, char* _msg,
         return SUCCESS;
     }
 
-    HashMapFind(_serverApp->m_connectedClients, (void*)&_clientID, (void**)&client);
+    if( HashMapFind(_serverApp->m_connectedClients, (void*)&_clientID, (void**)&client) != MAP_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, MSG_TYPE_ERR, GEN_ERROR);
+        return GEN_FAIL;
+    }
 
     client->m_tempBuffer = malloc(_msgSize * sizeof(char));
     memcpy(client->m_tempBuffer, _msg, _msgSize);
@@ -311,7 +329,6 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
     
     currentMsgType = ProtocolGetMsgType(_msg);
     
-
     switch (currentMsgType)
     {
     case REG_REQ: /* V */
@@ -335,11 +352,12 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
         break;
 
     case GROUP_LEAVE_REQ:
-        /* code */
+        LeaveGroup(_serverApp, _clientID, _msg, _msgSize);
         break;
 
 
     default:
+        SendAppResp(_serverApp, _clientID, MSG_TYPE_ERR, GEN_ERROR);
         return MSG_TYPE_ERR;
         break;
     }
@@ -387,6 +405,8 @@ static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg
 
     if( ProtocolUnpackUserDetails(_msg, userName, userPass) != PROTOCOL_SUCCESS)
     {
+        SendAppResp(_serverApp, _clientID, LOGIN_REC, GEN_ERROR);
+        UIMsgRcvErr();
         return MSG_READ_ERR;
     }
 
@@ -403,6 +423,7 @@ static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg
         break;
     
     case USER_MNG_SUCCESS:
+        AddUsernameToClient(_serverApp, _clientID, userName);
         SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_CONNECTED);
         break;
 
@@ -410,8 +431,22 @@ static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg
         SendAppResp(_serverApp, _clientID, LOGIN_REC, GEN_ERROR);
         break;
     }
-    
 }
+
+static APP_INTERN_ERR AddUsernameToClient(ServerApp* _serverApp, int _clientID, char* _userName)
+{
+    ConnectedClient* client;
+
+    if( HashMapFind (_serverApp->m_connectedClients, (void*)&_clientID, (void**)&client) != MAP_SUCCESS)
+    {
+        return GEN_FAIL;
+    }
+
+    strcpy(client->userName, _userName);
+
+    return SUCCESS;
+}
+
 
 static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
 {
@@ -420,6 +455,8 @@ static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _ms
 
     if( ProtocolUnpackUserName(_msg, userName) != PROTOCOL_SUCCESS)
     {
+        SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
+        UIMsgRcvErr();
         return MSG_READ_ERR;
     }
 
@@ -453,6 +490,8 @@ static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _m
 
     if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
     {
+        SendAppResp(_serverApp, _clientID, GROUP_CREATE_REQ, GEN_ERROR);
+        UIMsgRcvErr();
         return MSG_READ_ERR;
     }
 
@@ -478,7 +517,64 @@ static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg
 {
     USER_MNG_ERR joinRes;
 
+    char groupName[GROUP_NAME_LENGTH];
+    char groupIP[IPV4_ADDRESS_SIZE];
+    int groupPort;
+
+    if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        UIMsgRcvErr();
+        return MSG_READ_ERR;
+    }
+
+    joinRes = GroupMngJoin(_serverApp->m_groupMng, groupName, groupIP, &groupPort);
+
+    switch (joinRes)
+    {
+    case GROUP_MNG_SUCCESS:
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GROUP_JOINED);
+        usleep(USLEEP_WAIT);
+        SendGroupDetails(_serverApp, _clientID, groupIP, groupPort);
+        UIGroupJoined(_clientID, groupName, groupIP, groupPort);
+        break;
+
+    default:
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GROUP_JOIN_FAIL);
+        break;
+    }
 }
+
+static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+{
+    USER_MNG_ERR leaveRes;
+    char groupName[GROUP_NAME_LENGTH];
+
+    if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GEN_ERROR);
+        UIMsgRcvErr();
+        return MSG_READ_ERR;
+    }
+
+    leaveRes = GroupMngLeave(_serverApp->m_groupMng, groupName);
+
+    switch (leaveRes)
+    {
+    case GROUP_MNG_SUCCESS:
+        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GROUP_LEFT);
+        UIGroupLeft(_clientID, groupName);
+        break;
+
+    default:
+        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GROUP_JOIN_FAIL);
+        break;
+    }
+}   
+
+
+/*---------------------------------------- Send Functions ----------------------------------------*/
+
 
 static void SendGroupDetails(ServerApp* _serverApp, int _clientID, char* _ip, int _port)
 {

@@ -108,7 +108,7 @@ GROUP_MNG_ERR GroupMngAdd(GroupMng* _groupMng, char* _groupName, char* _ipOutput
         return GROUP_MNG_ALLOC_ERR;
     }
 
-    if (QueueRemove(_groupMng->m_freeAddr, &freeAddr) != QUEUE_SUCCESS)
+    if (QueueRemove(_groupMng->m_freeAddr, (void**)&freeAddr) != QUEUE_SUCCESS)
     {
         free(nameKey);
         return GROUP_MNG_GET_ADDR_ERR;
@@ -294,7 +294,7 @@ static char* HashNameAsKeyCreate(char* _name)
 
 size_t GroupMngHashKeyFunc(void *_name)
 {
-    return (size_t)((char*)_name[0]);
+    return (size_t)*((char*)_name);
 }
 
 int GroupMngHashEquality(void *_name1, void* _name2)

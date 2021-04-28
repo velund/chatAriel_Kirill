@@ -37,3 +37,13 @@ void UIGroupCreated(char *_name, char* _ip, int _port)
 {
     printf("New group '%s' created with IP %s and port %d\n", _name, _ip, _port);
 }
+
+void UIGroupJoined(int _clientID, char *_name, char* _ip, int _port)
+{
+    printf("Client %d joined group '%s' with IP %s and port %d\n", _clientID, _name, _ip, _port);
+}
+
+void UIGroupLeft(int _clientID, char *_name)
+{
+    printf("Client %d left group '%s'\n", _clientID, _name);
+}

@@ -33,3 +33,5 @@ clean:
 	
 	#gcc -ansi -pedantic -Wall -g serverAppMain.c serverApp.c userMng.c userStruct.c protocol.c server.c lib_struct.a
 
+	#gcc -ansi -pedantic -g serverAppMain.c serverApp.c userMng.c userStruct.c protocol.c server.c serverAPPUI.c groupMng.c group.c lib_struct.a
+
