@@ -109,16 +109,7 @@ CLIENT_APP_ERR createGroup(Client *_client, char *_grpName)
 	} 
 	return CLIENT_APP_OK;
 } 
-/*
-CLIENT_APP_ERR getGroups(Client *_client)
-{
-	CLIENT_APP_ERR check;
-	Vector *groupsList = VectorCreate(GRPOUPS_VECTOR_INIT_SIZE, GROUPS_VECTOR_ENLARGE);
-	if ( (check = sendGroupsVectrorReq(_client)) != CLIENT_APP_OK ) { return check; } 
-	if ( (check = recieveGroupsVector(_client, groupsList)) != CLIENT_APP_OK ) { return check; } 
-	
-	return CLIENT_APP_OK;
-}*/
+
 
 Vector* getGroups(Client *_client)
 {
@@ -229,7 +220,12 @@ TREATED treatServerResponse(MSG_RESPONSE _unpckdMsg)
 		case USER_NOT_FOUND:
 			printf("user not found\n");
 			return BAD;
-			
+		case GROUP_NOT_EXISTS:
+			printf("GROUP_NOT_EXISTS\n");
+			return BAD;
+		case GROUP_NAME_TOO_SHORT:
+			printf("GROUP_NAME_TOO_SHORT\n");
+			return BAD;
 	    case GEN_ERROR:
 			printf("General error\n");
 			return BAD;
