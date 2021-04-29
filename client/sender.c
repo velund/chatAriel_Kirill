@@ -77,11 +77,12 @@ void SenderRun(int _socket, struct sockaddr_in _addr, char* _userName, char* _gr
     char buffer[BUFFER_SIZE];
     char finalMsg[BUFFER_SIZE];
 
-    printf("Welcome to group: %s!\n", _groupName);
-    printf("Please write any message:\n\n\n");
+    printf("Welcome to group: %s!\n\n", _groupName);
 
     while (1) 
     {
+        printf("Group: %s\n", _groupName);
+        printf("Please write any message:\n");
         sprintf(finalMsg, "%s: ", _userName);
         fgets(buffer, BUFFER_SIZE, stdin);
         strcat(finalMsg, buffer);
@@ -93,5 +94,6 @@ void SenderRun(int _socket, struct sockaddr_in _addr, char* _userName, char* _gr
             perror("sendto");
             exit(1);
         }
+        system("clear");
     }
 }
