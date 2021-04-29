@@ -137,10 +137,7 @@ PackedMessage ProtocolPackGroupListRequest();
 
 PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize);
 
-
-
 PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg,  Vector* _saveListTo);
-
 
 /*
  * Description: Pack given user name and password
