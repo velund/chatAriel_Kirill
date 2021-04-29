@@ -217,8 +217,13 @@ TREATED treatServerResponse(MSG_RESPONSE _unpckdMsg)
 		case USER_ALREADY_CONNECTED:
 			printf("user already connected\n");
 			return BAD;
-		
-			
+		/* groups */
+		case GROUP_NOT_EXISTS:
+			printf("group not exists\n");
+			return BAD;
+		case GROUP_NAME_TOO_SHORT:
+			printf("group name too short\n");
+			return BAD;
 	    case GEN_ERROR:
 			printf("General error\n");
 			return BAD;

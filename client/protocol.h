@@ -92,6 +92,8 @@ typedef enum MSG_RESPONSE{
     /* group create */
     GROUP_CREATED,
     GROUP_CREATE_FAIL,
+    GROUP_NOT_EXISTS,
+    GROUP_NAME_TOO_SHORT,
 
      /* group join */
     GROUP_JOINED,
