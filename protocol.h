@@ -110,6 +110,14 @@ typedef enum MSG_RESPONSE{
 
 /*-------------------------- Functions declarations -------------------------*/
 
+/* TODO; protocol get list of groups */
+
+PackedMessage ProtocolPackGroupListRequest();
+
+PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, Vector* _saveListTo);
+
+
+
 
 MSG_RESPONSE ProtocolGetMsgResponse(PackedMessage _packedMsg); 
 
@@ -129,7 +137,7 @@ PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName)
 PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize);
 
 
-PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, size_t msgSize, Vector* _saveListTo);
+
 
 
 /*
