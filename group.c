@@ -18,7 +18,7 @@
 struct Group{
     char m_name[MAX_GROUP_NAME_LENGTH];
     int m_port;
-    char m_ipv4Address[IPV4_ADDRESS_SIZE];
+    char *m_ipv4Address;
     size_t m_numOfUsers;
 } ;
 
@@ -44,18 +44,20 @@ Group *GroupCreate(char* _name, char* _ipv4Address, int _port)
 
     strcpy(newGroup->m_name, _name);
     newGroup->m_port = _port;
-    strcpy(newGroup->m_ipv4Address, _ipv4Address);
+    /*strcpy(newGroup->m_ipv4Address, _ipv4Address);*/
+    newGroup->m_ipv4Address = _ipv4Address;
+
     newGroup->m_numOfUsers = 1;
     return newGroup;
 }
 
-void GroupDestroy(Group** _group)
+void GroupDestroy(Group** _group, char** _ipOutput)
 {  
     if(_group == NULL || *_group == NULL)
     {
         return;
     }
-    
+    *_ipOutput = (*_group)->m_ipv4Address;
     free(*_group);
 }
 
@@ -81,6 +83,21 @@ GROUP_ERR GroupDisconnect(Group* _group)
     }
 
     (_group->m_numOfUsers)--;
+
+    if(_group->m_numOfUsers == 0)
+    {
+        return GROUP_EMPTY;
+    }
+    return GROUP_SUCCESS;
+}
+
+GROUP_ERR GroupGetIP(Group* _group, char* _ipOutput)
+{
+    if(_group == NULL || _ipOutput == NULL)
+    {
+        return GROUP_NOT_INITALIZED;
+    }
+    strcpy(_ipOutput, _group->m_ipv4Address);
     return GROUP_SUCCESS;
 }
 

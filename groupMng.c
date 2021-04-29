@@ -28,6 +28,7 @@ struct GroupMng{
 
 size_t GroupMngHashKeyFunc(void *_name);
 int GroupMngHashEquality(void *_name1, void* _name2);
+static void DestroyGroupFromMng(GroupMng* _groupMng, Group* _grp);
 
 /* -------------- Main Helper Functions -------------- */
 
@@ -123,7 +124,7 @@ GROUP_MNG_ERR GroupMngAdd(GroupMng* _groupMng, char* _groupName, char* _ipOutput
 
     if(HashMapInsert(_groupMng->m_groups, (void*)nameKey, (void*)newGroup ) != MAP_SUCCESS)
     {
-        GroupDestroy(&newGroup);
+        GroupDestroy(&newGroup, &freeAddr);
         free(nameKey);
         QueueInsert(_groupMng->m_freeAddr, (void*)freeAddr);
         return GROUP_MNG_ADD_ERR;
@@ -139,6 +140,7 @@ GROUP_MNG_ERR GroupMngRemove(GroupMng* _groupMng, char* _groupName)
 {
     Group* wantedGroup;
     char* groupKeyOutput;
+    char* ipOutput;
 
     if(_groupMng == NULL || _groupName == NULL)
     {
@@ -150,7 +152,8 @@ GROUP_MNG_ERR GroupMngRemove(GroupMng* _groupMng, char* _groupName)
         return GROUP_MNG_GROUP_NOT_EXISTS;
     }
 
-    GroupDestroy(&wantedGroup);
+    GroupDestroy(&wantedGroup, &ipOutput);
+    QueueInsert(_groupMng->m_freeAddr, (void*)ipOutput);
     free(groupKeyOutput);
     return GROUP_MNG_SUCCESS;
 }
@@ -192,13 +195,20 @@ GROUP_MNG_ERR GroupMngLeave(GroupMng* _groupMng, char* _groupName)
         return GROUP_MNG_GROUP_NOT_EXISTS;
     }
 
-    if( GroupDisconnect(wantedGroup) != GROUP_SUCCESS)
+    if( GroupDisconnect(wantedGroup) == GROUP_SUCCESS)
     {
-        return GROUP_MNG_DISCONNECT_FAIL;
+        return GROUP_MNG_SUCCESS;
     }
 
-    return GROUP_MNG_SUCCESS;
+    if(GroupDisconnect(wantedGroup) == GROUP_EMPTY)
+    {
+        DestroyGroupFromMng(_groupMng, wantedGroup);
+        return GROUP_MNG_SUCCESS;
+    }
+
+    return GROUP_MNG_DISCONNECT_FAIL;
 }
+
 
 
 /* ------- Creation Helper ------- */
@@ -259,7 +269,9 @@ void GroupMngHashGroupKeyNameDestroy(void* _name)
 
 void GroupMngHashGroupValDestroy(void* _group)
 {
-    GroupDestroy((Group**)&_group);
+    char* ipOutput;
+    GroupDestroy((Group**)&_group, &ipOutput);
+    free(ipOutput);
 }
 
 void DestroyAddrInQ(void* _addr)
@@ -275,6 +287,14 @@ static void DestroyAddrQ(Queue** _addrQ)
 {
     QueueDestroy(_addrQ, DestroyAddrInQ);
 }
+
+static void DestroyGroupFromMng(GroupMng* _groupMng, Group* _grp)
+{
+    char *ipOutput;
+    GroupDestroy(&_grp, &ipOutput);
+    QueueInsert(_groupMng->m_freeAddr, (void*)ipOutput);
+}
+
 
 /* ------- Add Helper ------- */
 

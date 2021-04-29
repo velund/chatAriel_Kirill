@@ -24,8 +24,8 @@ typedef struct Group Group;
 
 typedef enum GROUP_ERR{
     GROUP_SUCCESS,
-    GROUP_NOT_INITALIZED
-    
+    GROUP_NOT_INITALIZED,
+    GROUP_EMPTY
 } GROUP_ERR ;
 
 /*-------------------------- Functions declarations -------------------------*/
@@ -44,7 +44,7 @@ Group *GroupCreate(char* _name, char* _ipv4Address, int _port);
  * Outputs:
  * Errors:
 */
-void GroupDestroy(Group** _group);
+void GroupDestroy(Group** _group, char** _ipOutput);
 
 /*
  * Description: increment user number
@@ -61,6 +61,14 @@ GROUP_ERR GroupConnect(Group* _group, char* _ipv4Address, int* _port);
  * Errors: GROUP_NOT_INITALIZED
 */
 GROUP_ERR GroupDisconnect(Group* _group);
+
+/*
+ * Description: decrement user number
+ * Inputs:
+ * Outputs: GROUP_SUCCESS
+ * Errors: GROUP_NOT_INITALIZED
+*/
+GROUP_ERR GroupGetIP(Group* _group, char* _ipOutput);
 
 
 #endif /* __GROUP_H__ */ 

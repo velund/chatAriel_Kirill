@@ -111,7 +111,7 @@ CLIENT_APP_ERR joinGroup(Client *_client, char *_grpName)
 	int grpPort;
 	size_t msgSize;
 	if ( (check = sendMessageGroupReq(_client, GROUP_JOIN_REQ, _grpName)) != CLIENT_APP_OK) { return check; }
-	if ( (check = recieveMsgGroupReq(_client, grpIp, grpPort)) != CLIENT_APP_OK) { return check; }
+	if ( (check = recieveMsgGroupReq(_client, grpIp, &grpPort)) != CLIENT_APP_OK) { return check; }
 	if ( (openChat(grpIp, grpPort, getClientName(_client), _grpName)) != OPEN_CHAT_SUCCESS) 
 	{ 
 		return CLIENT_APP_OPEN_CHAT_FAIL; 
