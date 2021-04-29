@@ -48,7 +48,9 @@ CLIENT_APP_ERR registerClient(Client *_client, char* _userName, char* _userPass)
 
 CLIENT_APP_ERR LoginClient(Client *_client, char* _userName, char* _userPass)
 {
-	return loginRegister(LOGIN_REQ, _client, _userName, _userPass);
+	if ( (loginRegister(LOGIN_REQ, _client, _userName, _userPass)) != CLIENT_APP_OK) { return LOGIN_FAIL; }
+	setCLientName(_client, _userName);
+	return CLIENT_APP_OK;
 }
 
 CLIENT_APP_ERR LogOutClient(Client *_client, char* _userName)
@@ -88,24 +90,32 @@ CLIENT_APP_ERR createGroup(Client *_client, char *_grpName)
 	if ( (addGroupToClientNet(_client, _grpName, grpIp, grpPort)) !=  CLIENT_APP_OK) 
 	{ return GROUP_ADDING_TO_CLIENT_NET_FAILURE; }
 
-	openChat(grpIp, grpPort, "Kirill", _grpName); /* TODO: get user name */
+	if ( (openChat(grpIp, grpPort, getClientName(_client), _grpName)) != OPEN_CHAT_SUCCESS) 
+	{ 
+		return CLIENT_APP_OPEN_CHAT_FAIL; 
+	} 
 	return CLIENT_APP_OK;
-} /*if ok joinGroup()  */
+} 
 void getGroups(Client *_client)
 {
 	Vector *groupsList = VectorCreate(10, 10);
 
 	/*showGroups(groupsList);*/ /* UI function */
 
-	/*showGroups(_client);*/
-} /* call showGroups((UI)) */
+
+}
 CLIENT_APP_ERR joinGroup(Client *_client, char *_grpName)
 {
-	MSG_RESPONSE unpckdMsg;
 	CLIENT_APP_ERR check;
-	if ( (check = groupsRequest(_client, GROUP_JOIN_REQ, GROUP_JOIN_REC, _grpName, &unpckdMsg)) != CLIENT_APP_OK )
-	{ return  GROUP_JOINING_FAILURE;}
-
+	char grpIp[IPV4_ADDR_LEN];
+	int grpPort;
+	size_t msgSize;
+	if ( (check = sendMessageGroupReq(_client, GROUP_JOIN_REQ, _grpName)) != CLIENT_APP_OK) { return check; }
+	if ( (check = recieveMsgGroupReq(_client, grpIp, grpPort)) != CLIENT_APP_OK) { return check; }
+	if ( (openChat(grpIp, grpPort, getClientName(_client), _grpName)) != OPEN_CHAT_SUCCESS) 
+	{ 
+		return CLIENT_APP_OPEN_CHAT_FAIL; 
+	}
 	return CLIENT_APP_OK;
 
 } /*packJoinGroup, send(TCP), recv, unpack if ok call connectToGroup ((clientNet))*/ 
@@ -113,9 +123,9 @@ CLIENT_APP_ERR leaveGroup(Client *_client, char *_grpName)
 {
 	MSG_RESPONSE unpckdMsg;
 	CLIENT_APP_ERR check;
-	if ( (check = groupsRequest(_client, GROUP_LEAVE_REQ, GROUP_LEAVE_REC, _grpName, &unpckdMsg) ) != CLIENT_APP_OK )
-	{ return  check;} 
-	/*killMains();*/
+	sendMessageGroupReq(_client, GROUP_JOIN_REQ, _grpName);
+	recieveMsgGroupReq(_client, )
+	/* killMains(); */
 	return CLIENT_APP_OK;
 }
 

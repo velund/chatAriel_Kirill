@@ -19,8 +19,11 @@
 #include "list.h"
 
 #define GROUP_NAME_LEN 20
+#define CLIENT_NAME_LEN 20
+
 struct Client
 {
+	char m_name[CLIENT_NAME_LEN];
 	int m_clientSocket;
 	char *m_buffer; /*  */
 	List *m_connectedGroups; /* List groups */
@@ -35,6 +38,11 @@ struct Group
 /* assist funcs */
 void initAddr(struct sockaddr_in *_serverAddr, char *_ip, int _port);
 /* end assist funcs */
+
+clientNetErr connectToGroup(Client *_client, char *_grpName, char *_ip, int _port)
+{
+
+}
 
 clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port)
 {
@@ -73,7 +81,7 @@ Client *connectClient()
 
 void disconnect(Client **_client)
 {
-	close((*_client)->m_clientSocket);
+	close((*_client)->m_clientSocket); /* destroy _client-> */
 	free(*_client);
 	*_client = NULL;
 }
@@ -117,6 +125,16 @@ int getClientSocket(Client *_client)
 {
 	if (_client == NULL) { return -1; }
 	return _client->m_clientSocket;
+}
+
+void setCLientName(Client *_client, char *_name)
+{
+	strcpy(_client->m_name, _name); 
+}
+
+char *getClientName(Client *_client)
+{
+	return _client->m_name;
 }
 
 void setGroupName(Group *_gr, char *_grName)

@@ -31,4 +31,8 @@ clientNetErr recvMsg(int _client_socket, int _maxMsgSize, char *_msgFromServer, 
 clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port);
 /* getter */
 int getClientSocket(Client *_client );
+void setCLientName(Client *_client, char *_name);
+void setGroupName(Group *_gr, char *_grName);
+void setGroupAddr(Group *_gr, char *_grIp, int _grPort);
+char *getClientName(Client *_client);
 #endif /* __CLIENTNET_H__ */
