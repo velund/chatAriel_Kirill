@@ -124,7 +124,7 @@ CLIENT_APP_ERR leaveGroup(Client *_client, char *_grpName)
 	MSG_RESPONSE unpckdMsg;
 	CLIENT_APP_ERR check;
 	sendMessageGroupReq(_client, GROUP_JOIN_REQ, _grpName);
-	recieveMsgGroupReq(_client, )
+	/*recieveMsgGroupReq(_client, )*/
 	/* killMains(); */
 	return CLIENT_APP_OK;
 }

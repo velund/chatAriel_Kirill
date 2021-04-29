@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
+#include "chatOpener.h"
 
 CHAT_OPENER_ERR openChat(char  *_grpIp, int _grpPort, char* _userName, char* _groupName)
 {
