@@ -218,11 +218,12 @@ GROUP_MNG_ERR GroupMngGetGroupList(GroupMng* _groupMng, Vector *_list)
     {
         return GROUP_MNG_NOT_INITALIZED;
     }
-    
+    HashMapForEach(_groupMng->m_groups, GetListHashActFunc, _list);
+    /*
     if (HashMapForEach(_groupMng->m_groups, GetListHashActFunc, _list) != HashMapNumOfElements(_groupMng->m_groups) )
     {
         return GROUP_MNG_GET_GROUPS_ERR;
-    }
+    }*/
 
     return GROUP_MNG_SUCCESS;
 }

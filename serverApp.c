@@ -397,11 +397,13 @@ static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* 
 
     if (GroupMngGetGroupList(_serverApp->m_groupMng, nameVector) != GROUP_MNG_SUCCESS)
     {
+       
         SendAppResp(_serverApp, _clientID, GROUP_LIST_REC, GROUP_LIST_FAIL);
         VectorDestroy(&nameVector, ListVectorNameDestroy);
     }
     
     SendAppGroupList(_serverApp, _clientID, nameVector);
+    VectorDestroy(&nameVector, NULL);
 }
 
 static void SendAppGroupList(ServerApp* _serverApp, int _clientID, Vector* _list)
@@ -419,6 +421,7 @@ static void SendAppGroupList(ServerApp* _serverApp, int _clientID, Vector* _list
     ServerSend(_serverApp->m_serverNet, _clientID, pckMsg, msgSize);
 
     ProtocolPackedMsgDestroy(pckMsg);
+    
 }
 
 void ListVectorNameDestroy(void* _name)

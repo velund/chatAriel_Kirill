@@ -118,7 +118,7 @@ Vector* getGroups(Client *_client)
 	Vector *groupsList = VectorCreate(GRPOUPS_VECTOR_INIT_SIZE, GROUPS_VECTOR_ENLARGE);
 
 	if ( (check = sendGroupsVectrorReq(_client)) != CLIENT_APP_OK ) { return NULL; } 
-	printf("step\n");
+	
 	if ( (check = recieveGroupsVector(_client, groupsList)) != CLIENT_APP_OK ) { return NULL; } 
 	
 	return groupsList;
