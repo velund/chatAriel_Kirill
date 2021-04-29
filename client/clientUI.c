@@ -149,7 +149,7 @@ CLIENT_ACT ClientUIGetGroupName(char* _groupName)
 int showGroup(void* _element, size_t _index, void* _context)
 {
     if ( (char*)_element == NULL ) { return 0; }
-    printf("%ld: %s\n", _index, (char*)_element );
+    printf("%ld: %s\n", _index + 1, (char*)_element );
     return 1;
 }
 

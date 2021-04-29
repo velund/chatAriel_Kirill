@@ -296,7 +296,7 @@ PackedMessage ProtocolPackGroupListRequest(size_t *_pckMsgSize)
     return packedMsg;
 }
 
-
+/*- [MSG_TYPE][Whole Msg Length][GROUP_LIST_SUCCESS/GROUP_LIST_FAIL][GroupNumber][Len][Group][Len][Group]... */
 PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize)
 {
     PackedMessage packedMsg;
@@ -324,12 +324,14 @@ PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize)
         strncpy(&packedMsg[i + 1], groupName, packedMsg[i]);
         i += (1 + packedMsg[i]);
         groupNum++;
+        free(groupName);
     }
 
     msgSize = (Byte)(i - 1);
     packedMsg[MSG_LEN_B] = (Byte)msgSize;
     packedMsg[MSG_NUM_OF_GROUPS_B] = (Byte)groupNum;
 
+    *_pckMsgSize = msgSize;
     return packedMsg;
 }
 
@@ -348,12 +350,13 @@ PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, Vector* _saveList
     while(i < msgSize)
     {
         strncpy(groupName, &_packedMsg[i], _packedMsg[i - 1]);
-        i += _packedMsg[i - 1];
 
         if ( VectorAppend(_saveListTo, AllocName(groupName, _packedMsg[i - 1])) != VECTOR_SUCCESS)
         {
             return PROTOCOL_UNPACK_GROUP_ERR;
         }
+
+        i += (_packedMsg[i - 1] + 1);
     }
     return PROTOCOL_SUCCESS;
 }
