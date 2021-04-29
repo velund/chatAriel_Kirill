@@ -115,7 +115,6 @@ CLIENT_APP_ERR getGroups(Client *_client)
 	Vector *groupsList = VectorCreate(GRPOUPS_VECTOR_INIT_SIZE, GROUPS_VECTOR_ENLARGE);
 	if ( (check = sendGroupsVectrorReq(_client)) != CLIENT_APP_OK ) { return check; } 
 	if ( (check = recieveGroupsVector(_client, groupsList)) != CLIENT_APP_OK ) { return check; } 
-	/*showGroups(groupsList);*/ /* UI function */
 	return CLIENT_APP_OK;
 }
 CLIENT_APP_ERR joinGroup(Client *_client, char *_grpName)
@@ -189,6 +188,7 @@ CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _us
 
 TREATED treatServerResponse(MSG_RESPONSE _unpckdMsg)
 {
+
 	switch (_unpckdMsg)
 	{	
 		/* Register: */
@@ -214,6 +214,10 @@ TREATED treatServerResponse(MSG_RESPONSE _unpckdMsg)
 		case USER_NOT_FOUND:
 			printf("user not found\n");
 			return BAD;
+		case USER_ALREADY_CONNECTED:
+			printf("user already connected\n");
+			return BAD;
+		
 			
 	    case GEN_ERROR:
 			printf("General error\n");
@@ -271,8 +275,12 @@ CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port)
 	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, recieveBuffer, &bytesRecieved) != CLIENT_NET_OK ) 
 	{ 
 		return RECVING_FAIL;
-	} 
-	if ( ProtocolGetMsgResponse(recieveBuffer) != GROUP_CREATED ) { return GROUP_CREATE_MSG_RESP_FAILURE; }
+	}
+	if ( (treatServerResponse(ProtocolGetMsgResponse(recieveBuffer))) != GOOD ) 
+	{
+		return GROUP_CREATE_MSG_RESP_FAILURE; 
+	}
+	 
 	ProtocolUnpackGroupDetails(recieveBuffer,_ip, _port);
 	return CLIENT_APP_OK;
 }
