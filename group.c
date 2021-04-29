@@ -101,4 +101,19 @@ GROUP_ERR GroupGetIP(Group* _group, char* _ipOutput)
     return GROUP_SUCCESS;
 }
 
+
+GROUP_ERR GroupGetName(Group* _group, char* _nameOutput)
+{
+
+    if(_group == NULL || _nameOutput == NULL)
+    {
+        return GROUP_NOT_INITALIZED;
+    }
+
+    strcpy(_nameOutput, _group->m_name);
+
+    return GROUP_SUCCESS;
+}
+
+
 /* ------------------------------------- Helper FUNCTIONS ------------------------------------- */

@@ -34,6 +34,11 @@ CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port);
 CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_grpName);
 CLIENT_APP_ERR checkGroupsParams(Client *_client, char *_grpName);
 CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpIp, int _grpPort );
+
+CLIENT_APP_ERR sendGroupsVectrorReq(Client *_client);
+CLIENT_APP_ERR recieveGroupsVector(Client *_client, Vector *_vector);
+
+
 /* end assist funcs */
 
 Client *createClientConnection()

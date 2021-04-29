@@ -3,6 +3,7 @@
 #include <string.h> /* strcmp(), strcat() */
 #include <stdio.h> /* sprintf */
 
+#include "vector.h"
 #include "genQueue.h"
 #include "HashMap.h"
 #include "groupMng.h"
@@ -209,6 +210,18 @@ GROUP_MNG_ERR GroupMngLeave(GroupMng* _groupMng, char* _groupName)
     return GROUP_MNG_DISCONNECT_FAIL;
 }
 
+GROUP_MNG_ERR GroupMngGetGroupList(GroupMng* _groupMng, Vector **_list)
+{
+    if(_groupMng == NULL || _list == NULL)
+    {
+        return GROUP_MNG_NOT_INITALIZED;
+    }
+    HashMapForEach(_groupMng->m_groups, )
+}
+
+
+
+/* typedef int	(*KeyValueActionFunction)(const void* _key, void* _value, void* _context); */
 
 
 /* ------- Creation Helper ------- */

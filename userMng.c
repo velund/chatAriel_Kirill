@@ -128,6 +128,7 @@ USER_MNG_ERR UserMngRemove(UserMng* _userMng, char* _name)
 USER_MNG_ERR UserMngConnect(UserMng* _userMng, char* _name, char* _pass)
 {
     User *foundUser;
+    USER_ERR reqRes;
 
     if(_userMng == NULL || _name == NULL || _pass == NULL)
     {
@@ -137,11 +138,27 @@ USER_MNG_ERR UserMngConnect(UserMng* _userMng, char* _name, char* _pass)
     {
         return USER_MNG_USER_NOT_FOUND;
     }
-    if (UserConnect(foundUser, _pass) == USER_PASS_INCORRECT)
+
+    reqRes = UserConnect(foundUser, _pass);
+
+    switch (reqRes)
     {
+    case USER_PASS_INCORRECT:
         return USER_MNG_PASS_INCORRECT;
+        break;
+    
+    case USER_ALREADY_CONNECT:
+        return USER_MNG_ALREADY_CONNECT;
+        break;
+    case USER_SUCCESS:
+        return USER_MNG_SUCCESS;
+        break;
+
+    default:
+        return USER_MNG_FAIL;
+        break;
     }
-    return USER_MNG_SUCCESS;
+    
 }
 
 USER_MNG_ERR UserMngDisconnect(UserMng* _userMng, char* _name)

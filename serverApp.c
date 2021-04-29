@@ -351,6 +351,11 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
         LogoutUser(_serverApp, _clientID, _msg, _msgSize);
         break;
 
+    
+    case GROUP_LIST_REQ: 
+        
+        break;
+
     case GROUP_CREATE_REQ:
         CreateGroup(_serverApp, _clientID, _msg, _msgSize);
         break;
@@ -369,6 +374,11 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
         return MSG_TYPE_ERR;
         break;
     }
+}
+
+static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+{
+    
 }
 
 
@@ -429,7 +439,10 @@ static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg
     case USER_MNG_PASS_INCORRECT:
         SendAppResp(_serverApp, _clientID, LOGIN_REC, PASS_INCORRECT);
         break;
-    
+
+    case USER_MNG_ALREADY_CONNECT:
+        SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_ALREADY_CONNECTED);
+        break;
     case USER_MNG_SUCCESS:
         AddUsernameToClient(_serverApp, _clientID, userName);
         SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_CONNECTED);

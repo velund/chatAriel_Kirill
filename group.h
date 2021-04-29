@@ -71,4 +71,13 @@ GROUP_ERR GroupDisconnect(Group* _group);
 GROUP_ERR GroupGetIP(Group* _group, char* _ipOutput);
 
 
+/*
+ * Description: 
+ * Inputs:
+ * Outputs: GROUP_SUCCESS
+ * Errors: GROUP_NOT_INITALIZED
+*/
+GROUP_ERR GroupGetName(Group* _group, char* _nameOutput);
+
+
 #endif /* __GROUP_H__ */ 

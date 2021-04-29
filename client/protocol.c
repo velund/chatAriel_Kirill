@@ -310,15 +310,17 @@ PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize)
     return packedMsg;
 }
 
-PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, size_t msgSize, Vector* _saveListTo)
+PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, Vector* _saveListTo)
 {
-    size_t i = 5; /* first char of first name */
+    size_t i = 5, msgSize; /* first char of first name */
     char groupName[GROUP_NAME_SIZE];
 
-    if(_saveListTo == NULL || _packedMsg == NULL || msgSize < 4)
+    if(_saveListTo == NULL || _packedMsg == NULL)
     {
         return PROTOCOL_MSG_NOT_INITALIZED;
     }
+
+    msgSize = _packedMsg[MSG_LEN_B];
    
     while(i < msgSize)
     {

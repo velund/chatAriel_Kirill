@@ -23,7 +23,9 @@ typedef enum USER_ERR{
     USER_NAME_NOT_SIMILAR,
 
     USER_PASS_CORRECT,
-    USER_PASS_INCORRECT
+    USER_PASS_INCORRECT,
+
+    USER_ALREADY_CONNECT
 } USER_ERR;
 
 /*---------------------------------- Typedef --------------------------------*/
