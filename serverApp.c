@@ -10,6 +10,7 @@
 #include "protocol.h"
 #include "userMng.h"
 #include "groupMng.h"
+#include "vector.h"
 
 #include "serverAPPUI.h"
 
@@ -378,7 +379,9 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
 
 static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
 {
-    
+    Vector* nameVector;
+
+    nameVector = VectorCreate(GROUPS_MAX);
 }
 
 

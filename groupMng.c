@@ -210,18 +210,45 @@ GROUP_MNG_ERR GroupMngLeave(GroupMng* _groupMng, char* _groupName)
     return GROUP_MNG_DISCONNECT_FAIL;
 }
 
-GROUP_MNG_ERR GroupMngGetGroupList(GroupMng* _groupMng, Vector **_list)
+GROUP_MNG_ERR GroupMngGetGroupList(GroupMng* _groupMng, Vector *_list)
 {
     if(_groupMng == NULL || _list == NULL)
     {
         return GROUP_MNG_NOT_INITALIZED;
     }
-    HashMapForEach(_groupMng->m_groups, )
+    
+    if (HashMapForEach(_groupMng->m_groups, GetListHashActFunc, _list) != HashMapNumOfElements(_groupMng->m_groups) )
+    {
+        return GROUP_MNG_GET_GROUPS_ERR;
+    }
+
+    return GROUP_MNG_SUCCESS;
 }
 
+int GetListHashActFunc(void* _key, void* _value, void* _vector)
+{
+    char* groupName;
 
+    groupName = malloc(sizeof(char) * MAX_GROUP_NAME_LENGTH);
+    if(groupName == NULL)
+    {
+        return 0;
+    }
 
-/* typedef int	(*KeyValueActionFunction)(const void* _key, void* _value, void* _context); */
+    if (GroupGetName((Group*)_value, groupName) != GROUP_SUCCESS)
+    {
+        free(groupName);
+        return 0;
+    }
+
+    if (VectorAppend((Vector*)_vector, (void*)groupName) != VECTOR_SUCCESS)
+    {
+        free(groupName);
+        return 0;
+    }
+    return 1;
+}
+
 
 
 /* ------- Creation Helper ------- */

@@ -134,7 +134,6 @@ PackedMessage ProtocolPackGroupName(MSG_TYPE _type, char* _groupName, size_t *_p
 
 PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName);
 
-PackedMessage ProtocolPackGroupListRequest(); 
 
 PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize);
 

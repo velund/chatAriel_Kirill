@@ -32,7 +32,9 @@ typedef enum GROUP_MNG_ERR{
     GROUP_MNG_CONNECT_FAIL,
     GROUP_MNG_DISCONNECT_FAIL,
 
-    GROUP_MNG_GROUP_NOT_EXISTS
+    GROUP_MNG_GROUP_NOT_EXISTS,
+
+    GROUP_MNG_GET_GROUPS_ERR
     
 }  GROUP_MNG_ERR;
 
@@ -87,8 +89,13 @@ GROUP_MNG_ERR GroupMngJoin(GroupMng* _groupMng, char* _groupName, char* _ipOutpu
 GROUP_MNG_ERR GroupMngLeave(GroupMng* _groupMng, char* _groupName);
 
 
-
-GROUP_MNG_ERR GroupMngGetGroupList(GroupMng* _groupMng, Vector **_list);
+/*
+ * Description: 
+ * Inputs:
+ * Outputs: GROUP_MNG_SUCCESS
+ * Errors: GROUP_MNG_GET_GROUPS_ERR, GROUP_MNG_NOT_INITALIZED
+*/
+GROUP_MNG_ERR GroupMngGetGroupList(GroupMng* _groupMng, Vector *_list);
 
 
 #endif /* __GROUPMNG_H__ */
