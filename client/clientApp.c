@@ -19,8 +19,14 @@
 #define MAX_MSG_GROUP_REQ_SIZE 256
 #define GRPOUPS_VECTOR_INIT_SIZE 5
 #define GROUPS_VECTOR_ENLARGE 5
+
+typedef enum
+{
+	BAD,
+	GOOD
+}TREATED;
 /* assist funccs */
-void treatServerResponse(MSG_RESPONSE _unpckdMsg);
+TREATED treatServerResponse(MSG_RESPONSE _unpckdMsg);
 CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _userName, char* _userPass);
 CLIENT_APP_ERR checkStartTalkParams(Client *_client, char* _userName, char* _userPass);
 CLIENT_APP_ERR groupsRequest(Client *_client, MSG_TYPE _msgtypeToSend, MSG_TYPE _msgtypeToRecv, char *_grpName, MSG_RESPONSE *_unpckdMsg);
@@ -72,7 +78,7 @@ CLIENT_APP_ERR LogOutClient(Client *_client, char* _userName)
 		return RECVING_FAIL;
 	} 
 	unpckdMsg = ProtocolUnpackRespMsg(pckdMsg); 
-	treatServerResponse(unpckdMsg);
+	if ( (treatServerResponse(unpckdMsg)) != GOOD ) { return CLIENT_APP_LOGOUT_FAILURE; } 
 	ProtocolPackedMsgDestroy(pckdMsg);
 	return CLIENT_APP_OK;
 }
@@ -173,43 +179,46 @@ CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _us
 	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
 	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg, &bytesRecieved) != CLIENT_NET_OK ) { return RECVING_FAIL; }
 	unpckdMsg = ProtocolUnpackRespMsg(pckdMsg); 
-	treatServerResponse(unpckdMsg);
+	if ( (treatServerResponse(unpckdMsg)) != GOOD ) { return CLIENT_APP_LOGIN_OR_REG_FALURE;}
 	ProtocolPackedMsgDestroy(pckdMsg);
 	return CLIENT_APP_OK; /* TODO: return fail on login fail! */
 }
 
-void treatServerResponse(MSG_RESPONSE _unpckdMsg)
+TREATED treatServerResponse(MSG_RESPONSE _unpckdMsg)
 {
 	switch (_unpckdMsg)
 	{	
 		/* Register: */
 		case USER_CREATED:
 			printf("user created successfully\n");
-			break;
+			return GOOD;
 	    case USER_EXISTS:
 			printf("user exists\n");
-			break;
+			return BAD;
 	    case USER_NAME_TOO_SHORT:
-		printf("user name too short\n");
-			break;
+			printf("user name too short\n");
+			return BAD;
 	    case PASS_TOO_SHORT:
-		printf("password too short\n");
-			break;
+			printf("password too short\n");
+			return BAD;
 		/* Login: */
 		case USER_CONNECTED:
 			printf("Connected Successfully\n");
-			break;
+			return GOOD;
 	    case PASS_INCORRECT:
-		printf("incorrect password\n");
-			break;
+			printf("incorrect password\n");
+			return BAD;
+		case USER_NOT_FOUND:
+			printf("user not found\n");
+			return BAD;
 			
 	    case GEN_ERROR:
-		printf("General error\n");
-			break;
+			printf("General error\n");
+			return BAD;
 	
 		default:
 			printf("unknown response msg\n");
-			break;
+			return BAD;
 	}
 }
 CLIENT_APP_ERR groupsRequest(Client *_client, MSG_TYPE _msgtypeToSend, MSG_TYPE _msgtypeToRecv, char *_grpName, MSG_RESPONSE *_unpckdMsg)
@@ -251,7 +260,6 @@ CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_g
 	ProtocolPackedMsgDestroy(pckdMsg);
 	return CLIENT_APP_OK;
 }
-
 
 CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port)
 {
