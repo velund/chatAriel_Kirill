@@ -13,6 +13,8 @@
 * 
 *****************************************************************************/
 
+#include "vector.h"
+
 /*---------------------------------- Typedef --------------------------------*/
 
 typedef struct GroupMng GroupMng;
@@ -83,6 +85,10 @@ GROUP_MNG_ERR GroupMngJoin(GroupMng* _groupMng, char* _groupName, char* _ipOutpu
  * Errors: GROUP_MNG_NOT_INITALIZED, GROUP_MNG_GROUP_NOT_EXISTS, GROUP_MNG_DISCONNECT_FAIL
 */
 GROUP_MNG_ERR GroupMngLeave(GroupMng* _groupMng, char* _groupName);
+
+
+
+GROUP_MNG_ERR GroupMngGetGroupList(GroupMng* _groupMng, Vector **_list);
 
 
 #endif /* __GROUPMNG_H__ */

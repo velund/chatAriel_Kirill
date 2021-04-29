@@ -84,6 +84,7 @@ typedef enum MSG_RESPONSE{
     PASS_INCORRECT,
     USER_NOT_FOUND,
     USER_CONNECTED,
+    USER_ALREADY_CONNECTED,
 
     /* logout */
     USER_DISCONNECTED,
@@ -112,7 +113,7 @@ typedef enum MSG_RESPONSE{
 
 /* TODO; protocol get list of groups */
 
-PackedMessage ProtocolPackGroupListRequest();
+PackedMessage ProtocolPackGroupListRequest(size_t *_pckMsgSize);
 
 PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, Vector* _saveListTo);
 
@@ -136,13 +137,6 @@ PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName)
 PackedMessage ProtocolPackGroupListRequest(); 
 
 PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize);
-
-
-<<<<<<< HEAD
-PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg,  Vector* _saveListTo);
-=======
-
->>>>>>> b8142493e3dbec136472aa50fc74fad76aaba768
 
 
 /*

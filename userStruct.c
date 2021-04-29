@@ -105,6 +105,10 @@ USER_ERR UserConnect(User* _user, char* _pass)
     {
         return USER_PASS_INCORRECT;
     }
+    if( _user->m_isActive == USER_ACTIVE)
+    {
+        return USER_ALREADY_CONNECT;
+    }
 
     _user->m_isActive = USER_ACTIVE;
     return USER_SUCCESS;

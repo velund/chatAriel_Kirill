@@ -273,6 +273,29 @@ PROTOCOL_ERR ProtocolUnpackUserName(PackedMessage _packedMsg, char* _userName)
 }
 /* ---- Group functions ---- */
 
+PackedMessage ProtocolPackGroupListRequest(size_t *_pckMsgSize)
+{
+    PackedMessage packedMsg;
+
+    if(_pckMsgSize == NULL)
+    {
+        return NULL;
+    }
+
+    packedMsg = malloc(sizeof(Byte) * 2);
+    if(packedMsg == NULL)
+    {
+        return NULL;
+    }
+
+    packedMsg[MSG_TYPE_B] = GROUP_LIST_REQ;
+    packedMsg[MSG_LEN_B] = 2;
+    
+    *_pckMsgSize = 2;
+
+    return packedMsg;
+}
+
 
 PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize)
 {
