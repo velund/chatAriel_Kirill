@@ -388,6 +388,7 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
 static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
 {
     Vector* nameVector;
+    GROUP_MNG_ERR res;
 
     nameVector = VectorCreate(GROUPS_MAX, 1);
     if(nameVector == NULL)
@@ -395,10 +396,18 @@ static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* 
         return GROUP_LIST_VECTOR_FAIL;
     }
 
-    if (GroupMngGetGroupList(_serverApp->m_groupMng, nameVector) != GROUP_MNG_SUCCESS)
+    res = GroupMngGetGroupList(_serverApp->m_groupMng, nameVector);
+
+    if (res != GROUP_MNG_SUCCESS)
     {
-       
-        SendAppResp(_serverApp, _clientID, GROUP_LIST_REC, GROUP_LIST_FAIL);
+        if(res == GROUP_MNG_EMPTY)
+        {
+            SendAppResp(_serverApp, _clientID, GROUP_LIST_REC, GROUP_LIST_EMPTY);
+        }
+        else
+        {
+            SendAppResp(_serverApp, _clientID, GROUP_LIST_REC, GROUP_LIST_FAIL);
+        }
         VectorDestroy(&nameVector, ListVectorNameDestroy);
     }
     

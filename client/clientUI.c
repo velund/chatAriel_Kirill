@@ -9,11 +9,12 @@ CLIENT_ACT ClientUIStartMenu()
 {
     int userAct = 0;
 
-    printf("Choose your action: \n");
+    
     
     while(userAct != 1 && userAct != 2 && userAct != 3)
     {
         printf("\n\n ------ Main Menu ------\n\n");
+        printf("Choose your action: \n");
         printf("1: Register\n2: Login\n3: Exit\n");
 
         scanf("%d", &userAct);
@@ -48,7 +49,6 @@ CLIENT_ACT ClientUIGetUserDetails(char* _userName, char* _passWord)
     printf("Please enter username: ");
     scanf("%s", _userName);
 
-    
 
     printf("Please enter password: ");
     scanf("%s", _passWord);
@@ -98,11 +98,11 @@ CLIENT_ACT ClientUIMenu2()
 {
     int userAct = 0;
 
-    printf("Choose your action: \n");
-    
     while(userAct != 1 && userAct != 2 && userAct != 3 && userAct != 4)
     {
         printf("\n\n ------ Menu 2 ------\n\n");
+
+        printf("Choose your action: \n");
         printf("1: Create group\n");
         printf("2: Join group\n");
         printf("3: Leave group\n");

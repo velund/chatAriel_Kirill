@@ -1,12 +1,15 @@
 
 #include <stdlib.h> /* size_t */
 #include <string.h> /* strcmp */
+#include <stdio.h> /* FILE */
 
 #include "userMng.h"
 #include "userStruct.h"
 #include "HashMap.h"
 
 #define MIN_HASH_SIZE 10
+#define USER_NAME_SIZE 20
+#define PASS_SIZE 20
 
 struct UserMng{
     HashMap* m_users;
@@ -21,7 +24,8 @@ static void HashUserDestroy(void *_userStruct);
 
 /* ------------------- Helper Functions Prototypes ------------------- */
 
-
+static void ReadUsers(UserMng* _mng);
+static void WriteUser(char* _name, char* _pass);
 
 /* ------------------------- Main Functions ------------------------- */
 
@@ -45,11 +49,29 @@ UserMng* UserMngCreate(size_t _numOfBuckets)
     {
         return NULL;
     }
-
-
+    ReadUsers(newMng);
+    
     return newMng;
 }
 
+static void ReadUsers(UserMng* _mng) /* TODO; should i respond to errors? Use static for scanning and adding */
+{
+    FILE* savedUsers;
+    char userName[USER_NAME_SIZE], password[PASS_SIZE], ch;
+
+    savedUsers = fopen("savedUsers.txt", "r ");
+    if(savedUsers == NULL)
+    {
+        return;
+    }
+
+    while( fscanf(savedUsers, "%s %s\n", userName, password) == 2)
+    {
+        UserMngAdd(_mng, userName, password); 
+    }
+    fclose(savedUsers);
+    
+}
 void UserMngDestroy(UserMng** _userMng)
 {
     if(_userMng == NULL || *_userMng == NULL)
@@ -101,8 +123,24 @@ USER_MNG_ERR UserMngAdd(UserMng* _userMng, char* _name, char* _pass)
     }
     else if(hashRes == MAP_SUCCESS)
     {
+        WriteUser(_name, _pass);
         return USER_MNG_USER_ADDED;
     }
+}
+
+static void WriteUser(char* _name, char* _pass)
+{
+    FILE * saveUsers;
+
+    saveUsers = fopen("savedUsers.txt", "a");
+    if(saveUsers == NULL)
+    {
+        return;
+    }
+
+    fprintf(saveUsers, "%s %s\n", _name, _pass);
+
+    fclose(saveUsers);
 }
 
 USER_MNG_ERR UserMngRemove(UserMng* _userMng, char* _name)
