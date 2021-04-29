@@ -282,7 +282,7 @@ CLIENT_APP_ERR sendGroupsVectrorReq(Client *_client)
 {
 	PackedMessage pckdMsg;
 	size_t msgSize;
-	pckdMsg = ProtocolPackGroupListRequest();
+	pckdMsg = ProtocolPackGroupListRequest(&msgSize);
 	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
 	ProtocolPackedMsgDestroy(pckdMsg);
 	return CLIENT_APP_OK;
