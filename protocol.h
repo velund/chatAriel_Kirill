@@ -87,6 +87,7 @@ typedef enum MSG_RESPONSE{
     USER_ALREADY_CONNECTED,
 
     /* logout */
+    CLIENT_DISCONNECT_REQ, /* when logout send msg response with this response  */
     USER_DISCONNECTED,
     
     /* group create */
@@ -116,7 +117,7 @@ typedef enum MSG_RESPONSE{
 
 /* TODO; protocol get list of groups */
 
-
+PackedMessage ProtocolPackLogoutReq(size_t *_pckMsgSize);
 
 PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, Vector* _saveListTo);
 
