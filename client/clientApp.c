@@ -15,6 +15,10 @@
 #include "chatOpener.h"
 #define RECIEVE_BUFFER_SIZE 256
 #define IPV4_ADDR_LEN 25
+#define MAX_GOUPS_VECTOR_MSG_SIZE 500
+#define MAX_MSG_GROUP_REQ_SIZE 256
+#define GRPOUPS_VECTOR_INIT_SIZE 5
+#define GROUPS_VECTOR_ENLARGE 5
 /* assist funccs */
 void treatServerResponse(MSG_RESPONSE _unpckdMsg);
 CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _userName, char* _userPass);
@@ -96,13 +100,14 @@ CLIENT_APP_ERR createGroup(Client *_client, char *_grpName)
 	} 
 	return CLIENT_APP_OK;
 } 
-void getGroups(Client *_client)
+CLIENT_APP_ERR getGroups(Client *_client)
 {
-	Vector *groupsList = VectorCreate(10, 10);
-
+	CLIENT_APP_ERR check;
+	Vector *groupsList = VectorCreate(GRPOUPS_VECTOR_INIT_SIZE, GROUPS_VECTOR_ENLARGE);
+	if ( (check = sendGroupsVectrorReq(_client)) != CLIENT_APP_OK ) { return check; } 
+	if ( (check = recieveGroupsVector(_client, groupsList)) != CLIENT_APP_OK ) { return check; } 
 	/*showGroups(groupsList);*/ /* UI function */
-
-
+	return CLIENT_APP_OK;
 }
 CLIENT_APP_ERR joinGroup(Client *_client, char *_grpName)
 {
@@ -123,12 +128,23 @@ CLIENT_APP_ERR leaveGroup(Client *_client, char *_grpName)
 {
 	MSG_RESPONSE unpckdMsg;
 	CLIENT_APP_ERR check;
-	sendMessageGroupReq(_client, GROUP_JOIN_REQ, _grpName);
-	/*recieveMsgGroupReq(_client, )*/
-	/* killMains(); */
+	char buffer[RECIEVE_BUFFER_SIZE];
+	int bytesRecieved;
+	if ( (sendMessageGroupReq(_client, GROUP_LEAVE_REC, _grpName)) != CLIENT_APP_OK) { return CLIENT_APP_GRP_LEAVE_FAIL; }
+	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, buffer, &bytesRecieved) != CLIENT_NET_OK ) 
+	{ 
+		return RECVING_FAIL;
+	} 
+	
+	/* closeChat */
 	return CLIENT_APP_OK;
 }
 
+CLIENT_APP_ERR leaveGroupreq(Client *_client, char *_grpName)
+{
+	sendMessageGroupReq(_client, GROUP_LEAVE_REC, _grpName);
+
+}
 /* assist funcs */
 CLIENT_APP_ERR checkStartTalkParams(Client *_client, char* _userName, char* _userPass)
 {
@@ -156,7 +172,7 @@ CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _us
 
 	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
 	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg, &bytesRecieved) != CLIENT_NET_OK ) { return RECVING_FAIL; }
-	unpckdMsg = ProtocolUnpackRespMsg(pckdMsg); /* enum in protocol */
+	unpckdMsg = ProtocolUnpackRespMsg(pckdMsg); 
 	treatServerResponse(unpckdMsg);
 	ProtocolPackedMsgDestroy(pckdMsg);
 	return CLIENT_APP_OK;
@@ -236,9 +252,10 @@ CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_g
 	return CLIENT_APP_OK;
 }
 
+
 CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port)
 {
-	char recieveBuffer[256];
+	char recieveBuffer[MAX_MSG_GROUP_REQ_SIZE];
 	int bytesRecieved;
 	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, recieveBuffer, &bytesRecieved) != CLIENT_NET_OK ) 
 	{ 
@@ -249,14 +266,30 @@ CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port)
 	return CLIENT_APP_OK;
 }
 
+
+CLIENT_APP_ERR sendGroupsVectrorReq(Client *_client)
+{
+	PackedMessage pckdMsg;
+	size_t msgSize;
+	pckdMsg = ProtocolPackGroupListRequest();
+	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
+	ProtocolPackedMsgDestroy(pckdMsg);
+	return CLIENT_APP_OK;
+}
+
 CLIENT_APP_ERR recieveGroupsVector(Client *_client, Vector *_vector)
 {
-	char buffer[256];
+	char buffer[MAX_GOUPS_VECTOR_MSG_SIZE];
 	int bytesRecieved;
 	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, buffer, &bytesRecieved) != CLIENT_NET_OK ) 
 	{ 
 		return RECVING_FAIL;
 	}
+	if ( (ProtocolUnpackGroupList(buffer, _vector)) != PROTOCOL_SUCCESS ) 
+	{ 
+		return CLIENT_APP_UNPACKING_GRP_VECT_FAILED; 
+	} 
+	return CLIENT_APP_OK;
 	
 }
 /*end assist funcs */

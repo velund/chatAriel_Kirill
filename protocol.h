@@ -125,11 +125,12 @@ PackedMessage ProtocolPackGroupName(MSG_TYPE _type, char* _groupName, size_t *_p
 
 PROTOCOL_ERR ProtocolUnpackGroupName(PackedMessage _packedMsg, char* _groupName);
 
+PackedMessage ProtocolPackGroupListRequest(); 
 
 PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize);
 
 
-PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, size_t msgSize, Vector* _saveListTo);
+PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg,  Vector* _saveListTo);
 
 
 /*

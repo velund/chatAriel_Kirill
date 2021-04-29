@@ -22,8 +22,11 @@ typedef enum
     GROUP_LEAVING_FAILURE,
     MSG_TYPE_FAIL,
     UNPACK_GROUP_DET_FAILURE,
+    CLIENT_APP_GRP_LEAVE_FAIL,
     /* chat */
-    CLIENT_APP_OPEN_CHAT_FAIL
+    CLIENT_APP_OPEN_CHAT_FAIL,
+    /* groups vector recv */
+    CLIENT_APP_UNPACKING_GRP_VECT_FAILED
 }CLIENT_APP_ERR; 
 
 Client *createClientConnection();
@@ -35,7 +38,7 @@ CLIENT_APP_ERR LogOutClient(Client *_client, char* _userName);
     
 */
 CLIENT_APP_ERR createGroup(Client *_client, char *_grpName); /*if ok joinGroup()  */
-void getGroups(); /* call showGroups((UI)) */
+CLIENT_APP_ERR getGroups(Client *_client); /* call showGroups((UI)) */
 CLIENT_APP_ERR joinGroup(Client *_client, char *_grpName); /*packJoinGroup, send(TCP), recv, unpack if ok call connectToGroup ((clientNet))*/ 
 CLIENT_APP_ERR leaveGroup(Client *_client, char *_grpName); 
 /* 

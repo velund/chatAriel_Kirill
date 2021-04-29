@@ -39,10 +39,6 @@ struct Group
 void initAddr(struct sockaddr_in *_serverAddr, char *_ip, int _port);
 /* end assist funcs */
 
-clientNetErr connectToGroup(Client *_client, char *_grpName, char *_ip, int _port)
-{
-
-}
 
 clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port)
 {
