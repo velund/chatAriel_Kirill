@@ -175,7 +175,7 @@ CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _us
 	unpckdMsg = ProtocolUnpackRespMsg(pckdMsg); 
 	treatServerResponse(unpckdMsg);
 	ProtocolPackedMsgDestroy(pckdMsg);
-	return CLIENT_APP_OK;
+	return CLIENT_APP_OK; /* TODO: return fail on login fail! */
 }
 
 void treatServerResponse(MSG_RESPONSE _unpckdMsg)
@@ -246,7 +246,7 @@ CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_g
 {
 	PackedMessage pckdMsg;
 	size_t msgSize;
-	pckdMsg = ProtocolPackGroupName(GROUP_CREATE_REQ, _grpName, &msgSize);
+	pckdMsg = ProtocolPackGroupName(_msgType, _grpName, &msgSize);
 	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
 	ProtocolPackedMsgDestroy(pckdMsg);
 	return CLIENT_APP_OK;

@@ -533,14 +533,13 @@ static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg
         UIMsgRcvErr();
         return MSG_READ_ERR;
     }
-
+    
     joinRes = GroupMngJoin(_serverApp->m_groupMng, groupName, groupIP, &groupPort);
 
     switch (joinRes)
     {
-    case GROUP_MNG_SUCCESS: /* TODO: fix message */
-        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GROUP_JOINED);
-        SendGroupDetails(_serverApp, GROUP_JOINED,_clientID, groupIP, groupPort);
+    case GROUP_MNG_SUCCESS: 
+        SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort);
         UIGroupJoined(_clientID, groupName, groupIP, groupPort);
         break;
 

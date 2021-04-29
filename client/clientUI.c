@@ -1,0 +1,146 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "clientUI.h"
+#include "protocol.h"
+
+CLIENT_ACT ClientUIStartMenu()
+{
+    int userAct = 0;
+
+    printf("Choose your action: \n");
+    
+    while(userAct != 1 && userAct != 2 && userAct != 3)
+    {
+        printf("\n\n ------ Main Menu ------\n\n");
+        printf("1: Register\n2: Login\n3: Exit\n");
+
+        scanf("%d", &userAct);
+        fflush(stdin);
+        switch (userAct)
+        {
+        case 1:
+            return ACT_REG;
+            break;
+        case 2:
+            return ACT_LOG;
+            break;
+        case 3:
+            return ACT_EXIT;
+            break;
+        default:
+            printf("Please enter a valid action! \n");
+            break;
+        }
+        
+    }
+    
+}
+
+CLIENT_ACT ClientUIGetUserDetails(char* _userName, char* _passWord)
+{
+    if(_userName == NULL || _passWord == NULL)
+    {
+        return ACT_ERR;
+    }
+
+    printf("Please enter username: ");
+    scanf("%s", _userName);
+
+    
+
+    printf("Please enter password: ");
+    scanf("%s", _passWord);
+    fflush(stdin);
+    putchar('\n');
+    return ACT_SUCCESS;
+}
+
+void ClientUIErr(MSG_RESPONSE _err)
+{
+    switch (_err)
+    {
+    /* Register */
+    case USER_EXISTS:
+        printf("User exists!\n");
+        break;
+    case USER_NAME_TOO_SHORT:
+        printf("Username too short!\n");
+        break;
+    case PASS_TOO_SHORT:
+        printf("Password too short!\n");
+        break;
+
+    /* Login */
+    case PASS_INCORRECT:
+        printf("Incorrect password!\n");
+        break;
+    case USER_NOT_FOUND:
+        printf("Username not found!\n");
+        break;
+
+    /* Groups */
+    case GROUP_CREATE_FAIL:
+        printf("Group creation failed!\n");
+        break;
+    case GROUP_JOIN_FAIL:
+        printf("Joining group failed!\n");
+        break;
+    default:
+        printf("Unknown Err %d\n", _err);
+        break;
+    }
+}
+
+
+CLIENT_ACT ClientUIMenu2()
+{
+    int userAct = 0;
+
+    printf("Choose your action: \n");
+    
+    while(userAct != 1 && userAct != 2 && userAct != 3 && userAct != 4)
+    {
+        printf("\n\n ------ Menu 2 ------\n\n");
+        printf("1: Create group\n");
+        printf("2: Join group\n");
+        printf("3: Leave group\n");
+        printf("4: Logout\n\n");
+
+        scanf("%d", &userAct);
+
+        switch (userAct)
+        {
+        case 1:
+            return ACT_CREATE_GRP;
+            break;
+        case 2:
+            return ACT_JOIN_GRP;
+            break;
+        case 3:
+            return ACT_LEAVE_GRP;
+            break;
+        case 4:
+            return ACT_LOGOUT;
+            break;
+        default:
+            printf("Please enter a valid action! \n");
+            break;
+        }
+    }
+}
+
+CLIENT_ACT ClientUIGetGroupName(char* _groupName)
+{
+    if(_groupName == NULL)
+    {
+        return ACT_ERR;
+    }
+
+    printf("Please enter group name: ");
+    scanf("%s", _groupName);
+
+    putchar('\n');
+    return ACT_SUCCESS;
+}
