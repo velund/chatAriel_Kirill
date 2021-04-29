@@ -144,3 +144,22 @@ CLIENT_ACT ClientUIGetGroupName(char* _groupName)
     putchar('\n');
     return ACT_SUCCESS;
 }
+
+
+int showGroup(void* _element, size_t _index, void* _context)
+{
+    if ( (char*)_element == NULL ) { return 0; }
+    printf("%ld: %s\n", _index, (char*)_element );
+    return 1;
+}
+
+void GroupNameInVecDestroy(void *_name)
+{
+    free(_name);
+}
+
+void showGroups(Vector *_groups)
+{
+    VectorForEach(_groups, showGroup, NULL);
+    VectorDestroy(&_groups, GroupNameInVecDestroy);
+}

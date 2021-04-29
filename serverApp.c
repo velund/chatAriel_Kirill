@@ -51,7 +51,9 @@ typedef enum APP_INTERN_ERR{
 
     /* New client() */
     CLIENT_ADD_FAIL,
-    CLIENT_ADD_SUCCESS
+    CLIENT_ADD_SUCCESS,
+
+    GROUP_LIST_VECTOR_FAIL
 } APP_INTERN_ERR;
 
 /*---------------------------------------- Helper Functions ----------------------------------------*/
@@ -85,8 +87,14 @@ static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, int _clientID, char* _ms
 
 static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res, int _clientID, char* _ip, int _port);
 
+
+static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
+static void SendAppGroupList(ServerApp* _serverApp, int _clientID, Vector* _list); 
+
 /* NewClient() */
 static APP_INTERN_ERR AddConnectedServerClient(ServerApp* _serverApp, ClientInfo _newClientInfo);
+
+void ListVectorNameDestroy(void* _name);
 
 
 /*---------------------------------------- Main Functions ----------------------------------------*/
@@ -185,10 +193,10 @@ void GotMessageFunc(TCPServer* _server, int _clientID, char* _msg, size_t _msgSi
 {
     char tempBuffer[TEMP_BUF_SIZE]; /* Needed if msg streamed in few parts from TCP */
 
-    if ( CheckMsg ((ServerApp*)_serverApp, _clientID, _msg, _msgSize)  != SUCCESS ) 
+    /*if ( CheckMsg ((ServerApp*)_serverApp, _clientID, _msg, _msgSize)  != SUCCESS ) 
     {
         return;
-    }
+    }*/
     TreatMsg( (ServerApp*)_serverApp, _clientID, _msg, _msgSize); /* TODO:  list of groups */
 }  
 
@@ -354,7 +362,7 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
 
     
     case GROUP_LIST_REQ: 
-        
+        SendGroupList(_serverApp, _clientID, _msg, _msgSize);
         break;
 
     case GROUP_CREATE_REQ:
@@ -381,9 +389,42 @@ static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* 
 {
     Vector* nameVector;
 
-    nameVector = VectorCreate(GROUPS_MAX);
+    nameVector = VectorCreate(GROUPS_MAX, 1);
+    if(nameVector == NULL)
+    {
+        return GROUP_LIST_VECTOR_FAIL;
+    }
+
+    if (GroupMngGetGroupList(_serverApp->m_groupMng, nameVector) != GROUP_MNG_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_LIST_REC, GROUP_LIST_FAIL);
+        VectorDestroy(&nameVector, ListVectorNameDestroy);
+    }
+    
+    SendAppGroupList(_serverApp, _clientID, nameVector);
 }
 
+static void SendAppGroupList(ServerApp* _serverApp, int _clientID, Vector* _list)
+{
+    PackedMessage pckMsg;
+    size_t msgSize;
+
+    pckMsg = ProtocolPackGroupList(_list, &msgSize);
+    if(pckMsg == NULL)
+    {  
+        SendAppResp(_serverApp, _clientID, GROUP_LIST_REC, GROUP_LIST_FAIL);
+        return;
+    }
+
+    ServerSend(_serverApp->m_serverNet, _clientID, pckMsg, msgSize);
+
+    ProtocolPackedMsgDestroy(pckMsg);
+}
+
+void ListVectorNameDestroy(void* _name)
+{
+    free(_name);
+}
 
 /* -------- Users -------- */
 

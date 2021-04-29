@@ -2,6 +2,7 @@
 #define __CLIENTAPP_H__
 
 #include "clientNet.h"
+#include "vector.h"
 
 typedef enum
 {
@@ -40,7 +41,8 @@ CLIENT_APP_ERR LogOutClient(Client *_client, char* _userName);
     
 */
 CLIENT_APP_ERR createGroup(Client *_client, char *_grpName); /*if ok joinGroup()  */
-CLIENT_APP_ERR getGroups(Client *_client); /* call showGroups((UI)) */
+Vector* getGroups(Client *_client);
+/*CLIENT_APP_ERR getGroups(Client *_client); */
 CLIENT_APP_ERR joinGroup(Client *_client, char *_grpName); /*packJoinGroup, send(TCP), recv, unpack if ok call connectToGroup ((clientNet))*/ 
 CLIENT_APP_ERR leaveGroup(Client *_client, char *_grpName); 
 /* 

@@ -12,6 +12,7 @@ int main(void)
     Client* myClient;
     CLIENT_ACT action;
     CLIENT_APP_ERR log = -1;
+    Vector* groupList;
     char userName[USER_NAME_SIZE];
     char pass[PASS_SIZE];
     char groupName[USER_NAME_SIZE];
@@ -32,8 +33,7 @@ int main(void)
         case ACT_REG:
             ClientUIGetUserDetails(userName, pass);
             registerClient(myClient, userName, pass);
-            action = 0;
-            action = ClientUIStartMenu();
+            
             break;
         case ACT_LOG:
             ClientUIGetUserDetails(userName, pass);
@@ -58,7 +58,16 @@ int main(void)
             ClientUIGetGroupName(groupName);
             createGroup(myClient, groupName);
             break;
-        case ACT_JOIN_GRP: /* TODO: show list of groups */
+        case ACT_JOIN_GRP: 
+        
+            groupList = getGroups(myClient);
+            if(groupList == NULL)
+            {
+                printf("Error getting groups\n");
+            }
+            showGroups(groupList);
+
+
             ClientUIGetGroupName(groupName);
             printf("Asked to join group %s\n", groupName);
             joinGroup(myClient, groupName);

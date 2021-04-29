@@ -89,7 +89,7 @@ MSG_TYPE ProtocolGetMsgType(PackedMessage _packedMsg)
     {
         return MSG_TYPE_ERR;
     }
-    return (MSG_TYPE)_packedMsg[0];
+    return (MSG_TYPE)_packedMsg[MSG_TYPE_B];
 }
 
 PackedMessage ProtocolPackRespMsg(MSG_TYPE _type, MSG_RESPONSE _response, size_t *_pckMsgSize)

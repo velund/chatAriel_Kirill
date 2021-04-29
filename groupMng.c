@@ -46,6 +46,8 @@ void GroupMngHashGroupValDestroy(void* _group);
 /* Add */
 static char* HashNameAsKeyCreate(char* _name);
 
+int GetListHashActFunc(const void* _key, void* _value, void* _vector);
+
 /* ------------------------------------------------------ Main Functions ------------------------------------------------------ */
 
 GroupMng* GroupMngCreate(size_t _maxGroupsNum)
@@ -225,7 +227,7 @@ GROUP_MNG_ERR GroupMngGetGroupList(GroupMng* _groupMng, Vector *_list)
     return GROUP_MNG_SUCCESS;
 }
 
-int GetListHashActFunc(void* _key, void* _value, void* _vector)
+int GetListHashActFunc(const void* _key, void* _value, void* _vector)
 {
     char* groupName;
 
@@ -240,7 +242,7 @@ int GetListHashActFunc(void* _key, void* _value, void* _vector)
         free(groupName);
         return 0;
     }
-
+    
     if (VectorAppend((Vector*)_vector, (void*)groupName) != VECTOR_SUCCESS)
     {
         free(groupName);
