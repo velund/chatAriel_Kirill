@@ -2,7 +2,7 @@
 #define __CLIENTNET_H__
 
 #include <stdlib.h> /*  size_t */
-
+#include "list.h"
 
 #define SERVER_IP "192.168.1.109"
 #define SERVER_PORT 8080 
@@ -34,5 +34,6 @@ int getClientSocket(Client *_client );
 void setCLientName(Client *_client, char *_name);
 void setGroupName(Group *_gr, char *_grName);
 void setGroupAddr(Group *_gr, char *_grIp, int _grPort);
+List *getClientsConnectedGroups(Client *_client);
 char *getClientName(Client *_client);
 #endif /* __CLIENTNET_H__ */

@@ -10,11 +10,11 @@
 #include <arpa/inet.h> /* inet_addr() */
 
 #include "clientNet.h"
-/*
+
 #include "list/DoubleLinkedListGeneric/DoubleLL/ADTErr.h"
 #include "list/DoubleLinkedListGeneric/DoubleLL/DoubleLL.h"
 #include "list/DoubleLinkedListGeneric/DoubleLLItr/DoubleLLItr.h"
-#include "list/DoubleLinkedListGeneric/DoubleLLItr/DoubleLLItr2.h"*/
+#include "list/DoubleLinkedListGeneric/DoubleLLItr/DoubleLLItr2.h"
 
 #include "list.h"
 
@@ -26,19 +26,22 @@ struct Client
 	char m_name[CLIENT_NAME_LEN];
 	int m_clientSocket;
 	char *m_buffer; /*  */
+	int m_numOfGroups;
 	List *m_connectedGroups; /* List groups */
+	
 };
 
 struct Group
 {
 	struct sockaddr_in m_groupAddr;
 	char m_grpName[GROUP_NAME_LEN];
+	int m_chatId;
 };
 
 /* assist funcs */
 void initAddr(struct sockaddr_in *_serverAddr, char *_ip, int _port);
+int destroyGroup(void *_element,void *_context);
 /* end assist funcs */
-
 
 clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port)
 {
@@ -47,10 +50,13 @@ clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port)
 	group = malloc(sizeof(Group));
 	if (group == NULL) { return GROUP_MALLOC_FAILED; }
 	strcpy(group->m_grpName, _grpName);
+	_client->m_numOfGroups++;
+	group->m_chatId = _client->m_numOfGroups;
 	initAddr(&(group->m_groupAddr), _ip, _port);
 	if ( (ListPushTail(_client->m_connectedGroups, (void*)group)) != LIST_SUCCESS) { return GROUP_NOT_CREATED ;}
 	return CLIENT_NET_OK; 
 }
+
 
 Client *connectClient()
 {
@@ -59,6 +65,7 @@ Client *connectClient()
 	Client *client = (Client*)malloc(sizeof(Client));
 	if (client == NULL) { return NULL; }
 	client->m_buffer = NULL;
+	client->m_numOfGroups = 0;
 	client->m_connectedGroups = ListCreate();
 	if(client->m_connectedGroups == NULL)
 	{
@@ -116,6 +123,17 @@ void initAddr(struct sockaddr_in *_serverAddr, char *_ip, int _port)
 	_serverAddr->sin_addr.s_addr = inet_addr(_ip);
 	_serverAddr->sin_port = htons(_port);
 }
+
+void destroyListOfGroups(List *_grps)
+{
+	ListItr_ForEach(ListItrBegin(_grps), ListItrEnd(_grps),destroyGroup, NULL);
+}
+
+int destroyGroup(void *_element,void *_context)
+{
+	if (_element == NULL) { return 0; }
+	free( (Group*)_element );
+}
 /* getters und setters*/
 int getClientSocket(Client *_client)
 {
@@ -132,6 +150,25 @@ char *getClientName(Client *_client)
 {
 	return _client->m_name;
 }
+
+List *getClientsConnectedGroups(Client *_client)
+{
+	return _client->m_connectedGroups;
+}
+
+int getGroupChatId(Group *_group)
+{
+	return _group->m_chatId;
+}
+void setGroupChatId(Group *_group, int _id)
+{
+	_group->m_chatId = _id;
+}
+
+void getClientNumOfGroups(Client *_client)
+{
+	return _client->m_numOfGroups;
+} 
 
 void setGroupName(Group *_gr, char *_grName)
 {

@@ -25,7 +25,7 @@ typedef enum
 	BAD,
 	GOOD
 }TREATED;
-/* assist funccs */
+/* assist funccs declarations */
 TREATED treatServerResponse(MSG_RESPONSE _unpckdMsg);
 CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _userName, char* _userPass);
 CLIENT_APP_ERR checkStartTalkParams(Client *_client, char* _userName, char* _userPass);
@@ -37,9 +37,7 @@ CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpI
 
 CLIENT_APP_ERR sendGroupsVectrorReq(Client *_client);
 CLIENT_APP_ERR recieveGroupsVector(Client *_client, Vector *_vector);
-
-
-/* end assist funcs */
+/* end assist funcs declarations*/
 
 Client *createClientConnection()
 {
@@ -68,26 +66,20 @@ CLIENT_APP_ERR LoginClient(Client *_client, char* _userName, char* _userPass)
 
 CLIENT_APP_ERR LogOutClient(Client *_client, char* _userName)
 {
-	MSG_RESPONSE unpckdMsg;
-	PackedMessage pckdMsg;
-	size_t msgSize;
 	CLIENT_APP_ERR check;
 	int bytesRecieved;
 	if ( (check =  checkStartTalkParams(_client, _userName,  _userName )) != CLIENT_APP_OK ) { return check; }
-	pckdMsg = ProtocolPackUserName(LOGOUT_REQ, _userName, &msgSize);	
-	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
-	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg, &bytesRecieved) != CLIENT_NET_OK ) 
-	{ 
-		return RECVING_FAIL;
-	} 
-	unpckdMsg = ProtocolUnpackRespMsg(pckdMsg); 
-	if ( (treatServerResponse(unpckdMsg)) != GOOD ) { return CLIENT_APP_LOGOUT_FAILURE; } 
-	ProtocolPackedMsgDestroy(pckdMsg);
+	if ( (check =sendLogoutReq(_client)) !=CLIENT_APP_OK) { return check; } 
+	if ( (check =recvLogoutReq(_client)) !=CLIENT_APP_OK ) { return check; } 
+	/* closeAllChats */
+	destroAllClientsGroups(_client);
+	destroyClientConnection(&_client);
 	return CLIENT_APP_OK;
 }
 
 CLIENT_APP_ERR createGroup(Client *_client, char *_grpName)
 {
+	
 	MSG_RESPONSE unpckdMsg;
 	char grpIp[IPV4_ADDR_LEN];
 	int grpPort;
@@ -103,13 +95,12 @@ CLIENT_APP_ERR createGroup(Client *_client, char *_grpName)
 	if ( (addGroupToClientNet(_client, _grpName, grpIp, grpPort)) !=  CLIENT_APP_OK) 
 	{ return GROUP_ADDING_TO_CLIENT_NET_FAILURE; }
 
-	if ( (openChat(grpIp, grpPort, getClientName(_client), _grpName)) != OPEN_CHAT_SUCCESS) 
+	if ( (openChat(grpIp, grpPort, getClientName(_client), _grpName), chatId) != OPEN_CHAT_SUCCESS) 
 	{ 
 		return CLIENT_APP_OPEN_CHAT_FAIL; 
 	} 
 	return CLIENT_APP_OK;
 } 
-
 
 Vector* getGroups(Client *_client)
 {
@@ -143,23 +134,20 @@ CLIENT_APP_ERR leaveGroup(Client *_client, char *_grpName)
 {
 	MSG_RESPONSE unpckdMsg;
 	CLIENT_APP_ERR check;
-	char buffer[RECIEVE_BUFFER_SIZE];
+	char recieveBuffer[RECIEVE_BUFFER_SIZE];
 	int bytesRecieved;
-	if ( (sendMessageGroupReq(_client, GROUP_LEAVE_REC, _grpName)) != CLIENT_APP_OK) { return CLIENT_APP_GRP_LEAVE_FAIL; }
-	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, buffer, &bytesRecieved) != CLIENT_NET_OK ) 
+	if ( (sendMessageGroupReq(_client, GROUP_LEAVE_REQ, _grpName)) != CLIENT_APP_OK) { return CLIENT_APP_GRP_LEAVE_FAIL; }
+	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, recieveBuffer, &bytesRecieved) != CLIENT_NET_OK ) 
 	{ 
 		return RECVING_FAIL;
 	} 
-	
+	unpckdMsg = ProtocolUnpackRespMsg(recieveBuffer); 
+	if ( (treatServerResponse(unpckdMsg)) != GOOD ) { return CLIENT_APP_LOGIN_OR_REG_FALURE;}
 	/* closeChat */
 	return CLIENT_APP_OK;
 }
 
-CLIENT_APP_ERR leaveGroupreq(Client *_client, char *_grpName)
-{
-	sendMessageGroupReq(_client, GROUP_LEAVE_REC, _grpName);
 
-}
 /* assist funcs */
 CLIENT_APP_ERR checkStartTalkParams(Client *_client, char* _userName, char* _userPass)
 {
@@ -181,13 +169,14 @@ CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _us
 	PackedMessage pckdMsg;
 	size_t msgSize;
 	CLIENT_APP_ERR check;
+	char recieveBuffer[MAX_MSG_GROUP_REQ_SIZE];
 	int bytesRecieved;
 	if ( (check =  checkStartTalkParams(_client, _userName,  _userPass )) != CLIENT_APP_OK ) { return check; }
 	pckdMsg = ProtocolPackUserDetails(_msgtypeToSend, _userName, _userPass, &msgSize);	
 
 	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
-	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, pckdMsg, &bytesRecieved) != CLIENT_NET_OK ) { return RECVING_FAIL; }
-	unpckdMsg = ProtocolUnpackRespMsg(pckdMsg); 
+	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, recieveBuffer, &bytesRecieved) != CLIENT_NET_OK ) { return RECVING_FAIL; }
+	unpckdMsg = ProtocolUnpackRespMsg(recieveBuffer); 
 	if ( (treatServerResponse(unpckdMsg)) != GOOD ) { return CLIENT_APP_LOGIN_OR_REG_FALURE;}
 	ProtocolPackedMsgDestroy(pckdMsg);
 	return CLIENT_APP_OK; /* TODO: return fail on login fail! */
@@ -226,9 +215,18 @@ TREATED treatServerResponse(MSG_RESPONSE _unpckdMsg)
 		case GROUP_NAME_TOO_SHORT:
 			printf("GROUP_NAME_TOO_SHORT\n");
 			return BAD;
+		case GROUP_LEFT:
+			printf("GROUP_LEFT\n");
+			return GOOD;
+		case GROUP_LEAVE_FAIL:
+			printf("GROUP_LEAVE_FAIL\n");
+			return BAD;
 	    case GEN_ERROR:
 			printf("General error\n");
 			return BAD;
+		case USER_DISCONNECTED:
+			printf("USER_DISCONNECTED\n");
+			return GOOD;
 	
 		default:
 			printf("unknown response msg\n");
@@ -263,6 +261,30 @@ CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpI
 		return GROUP_CREATION_FAILURE;
 	}
 	return 	CLIENT_APP_OK;
+}
+
+CLIENT_APP_ERR sendLogoutReq(Client *_client)
+{
+	PackedMessage pckdMsg;
+	size_t msgSize;
+	pckdMsg = ProtocolPackLogoutReq(&msgSize);	
+	if (sendMsg(getClientSocket(_client), pckdMsg, msgSize) != CLIENT_NET_OK ) { return SENDING_FAIL; }
+	ProtocolPackedMsgDestroy(pckdMsg);
+	return CLIENT_APP_OK;
+}
+
+CLIENT_APP_ERR recvLogoutReq(Client *_client)
+{
+	MSG_RESPONSE response;
+	char recieveBuffer[MAX_MSG_GROUP_REQ_SIZE];
+	int bytesRecieved;
+	if (recvMsg(getClientSocket(_client), RECIEVE_BUFFER_SIZE, recieveBuffer, &bytesRecieved) != CLIENT_NET_OK ) 
+	{ 
+		return RECVING_FAIL;
+	} 
+	response = ProtocolUnpackRespMsg(recieveBuffer);
+	if ( (treatServerResponse(response)) != GOOD ) { return LOGOUT_FAILURE; } 
+	return CLIENT_APP_OK;
 }
 
 CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_grpName)
@@ -313,5 +335,10 @@ CLIENT_APP_ERR recieveGroupsVector(Client *_client, Vector *_vector)
 	} 
 	return CLIENT_APP_OK;
 	
+}
+
+void destroAllClientsGroups(Client *_client)
+{
+	destroyListOfGroups(getClientsConnectedGroups(_client));	
 }
 /*end assist funcs */

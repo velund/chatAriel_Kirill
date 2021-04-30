@@ -29,7 +29,9 @@ typedef enum
     /* chat */
     CLIENT_APP_OPEN_CHAT_FAIL,
     /* groups vector recv */
-    CLIENT_APP_UNPACKING_GRP_VECT_FAILED
+    CLIENT_APP_UNPACKING_GRP_VECT_FAILED,
+    /* logout */
+    LOGOUT_FAILURE
 }CLIENT_APP_ERR; 
 
 Client *createClientConnection();

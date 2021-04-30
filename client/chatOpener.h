@@ -6,7 +6,7 @@ typedef enum
     OPEN_CHAT_SUCCESS,
     OPEN_CHAT_FAIL
 }CHAT_OPENER_ERR;
-CHAT_OPENER_ERR openChat(char  *_grpIp, int _grpPort, char* _userName, char* _groupName);
-
+CHAT_OPENER_ERR openChat(char  *_grpIp, int _grpPort, char* _userName, char* _groupName, int _chatId);
+CHAT_OPENER_ERR closeChat(char  *_grpIp, int _grpPort, char* _userName, char* _groupName, int _chatId);
 
 #endif /* __CHATOPENER_H__ */
