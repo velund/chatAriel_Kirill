@@ -43,7 +43,7 @@ void initAddr(struct sockaddr_in *_serverAddr, char *_ip, int _port);
 int destroyGroup(void *_element,void *_context);
 /* end assist funcs */
 
-clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port)
+clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port, Group **_group)
 {
 	Group *group;
 	if (_grpName == NULL || _ip == NULL || _port < 1025) { return INCORRECT_ARGS_OF_ADD_GROUP; }
@@ -54,6 +54,7 @@ clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port)
 	group->m_chatId = _client->m_numOfGroups;
 	initAddr(&(group->m_groupAddr), _ip, _port);
 	if ( (ListPushTail(_client->m_connectedGroups, (void*)group)) != LIST_SUCCESS) { return GROUP_NOT_CREATED ;}
+	*_group = group;
 	return CLIENT_NET_OK; 
 }
 
@@ -165,7 +166,7 @@ void setGroupChatId(Group *_group, int _id)
 	_group->m_chatId = _id;
 }
 
-void getClientNumOfGroups(Client *_client)
+int getClientNumOfGroups(Client *_client)
 {
 	return _client->m_numOfGroups;
 } 

@@ -33,7 +33,7 @@ CLIENT_APP_ERR groupsRequest(Client *_client, MSG_TYPE _msgtypeToSend, MSG_TYPE 
 CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port);
 CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_grpName);
 CLIENT_APP_ERR checkGroupsParams(Client *_client, char *_grpName);
-CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpIp, int _grpPort );
+CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpIp, int _grpPort, Group **_group );
 
 CLIENT_APP_ERR sendGroupsVectrorReq(Client *_client);
 CLIENT_APP_ERR recieveGroupsVector(Client *_client, Vector *_vector);
@@ -79,23 +79,22 @@ CLIENT_APP_ERR LogOutClient(Client *_client, char* _userName)
 
 CLIENT_APP_ERR createGroup(Client *_client, char *_grpName)
 {
-	
 	MSG_RESPONSE unpckdMsg;
 	char grpIp[IPV4_ADDR_LEN];
 	int grpPort;
 	size_t msgSize;
 	CLIENT_APP_ERR check;
-
+	Group *group;
 	if ( ( check = checkGroupsParams(_client, _grpName) ) != CLIENT_APP_OK )
 	{
 		return check;
 	}
 	if ( (check = sendMessageGroupReq(_client, GROUP_CREATE_REQ, _grpName)) !=  CLIENT_APP_OK) { return check; }
 	if ( (check = recieveMsgGroupReq(_client, grpIp, &grpPort)) != CLIENT_APP_OK ) { return check; }
-	if ( (addGroupToClientNet(_client, _grpName, grpIp, grpPort)) !=  CLIENT_APP_OK) 
+	if ( (addGroupToClientNet(_client, _grpName, grpIp, grpPort, &group)) !=  CLIENT_APP_OK) 
 	{ return GROUP_ADDING_TO_CLIENT_NET_FAILURE; }
 
-	if ( (openChat(grpIp, grpPort, getClientName(_client), _grpName), chatId) != OPEN_CHAT_SUCCESS) 
+	if ( (openChat(grpIp, grpPort, getClientName(_client), _grpName, getGroupChatId(group))) != OPEN_CHAT_SUCCESS) 
 	{ 
 		return CLIENT_APP_OPEN_CHAT_FAIL; 
 	} 
@@ -121,9 +120,14 @@ CLIENT_APP_ERR joinGroup(Client *_client, char *_grpName)
 	char grpIp[IPV4_ADDR_LEN];
 	int grpPort;
 	size_t msgSize;
+	Group *group;
 	if ( (check = sendMessageGroupReq(_client, GROUP_JOIN_REQ, _grpName)) != CLIENT_APP_OK) { return check; }
 	if ( (check = recieveMsgGroupReq(_client, grpIp, &grpPort)) != CLIENT_APP_OK) { return check; }
-	if ( (openChat(grpIp, grpPort, getClientName(_client), _grpName)) != OPEN_CHAT_SUCCESS) 
+	
+	if ( (addGroupToClientNet(_client, _grpName, grpIp, grpPort, &group)) !=  CLIENT_APP_OK) 
+	{ return GROUP_ADDING_TO_CLIENT_NET_FAILURE; }
+
+	if ( (openChat(grpIp, grpPort, getClientName(_client), _grpName, getGroupChatId(group))) != OPEN_CHAT_SUCCESS) 
 	{ 
 		return CLIENT_APP_OPEN_CHAT_FAIL; 
 	}
@@ -253,10 +257,10 @@ CLIENT_APP_ERR groupsRequest(Client *_client, MSG_TYPE _msgtypeToSend, MSG_TYPE 
 	return CLIENT_APP_OK;
 } 
 
-CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpIp, int _grpPort )
+CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpIp, int _grpPort, Group **_group )
 {
 	PROTOCOL_ERR check;
-	if ( (addGroup(_client, _grpName, _grpIp, _grpPort)) != CLIENT_NET_OK )
+	if ( (addGroup(_client, _grpName, _grpIp, _grpPort, _group)) != CLIENT_NET_OK )
 	{
 		return GROUP_CREATION_FAILURE;
 	}
