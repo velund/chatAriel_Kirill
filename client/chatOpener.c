@@ -7,8 +7,8 @@ CHAT_OPENER_ERR openChat(char  *_grpIp, int _grpPort, char* _userName, char* _gr
 {
     char listener[100];
     char sender[100];
-    sprintf(listener, "gnome-terminal  -- ./listen.out %s %d %s", _grpIp, _grpPort, _groupName);
-    sprintf(sender, "gnome-terminal -- ./send.out %s %d %s %s", _grpIp, _grpPort, _userName, _groupName);
+    sprintf(listener, "gnome-terminal --hide-menubar  -- ./listen.out %s %d %s", _grpIp, _grpPort, _groupName);
+    sprintf(sender, "gnome-terminal --hide-menubar -- ./send.out %s %d %s %s", _grpIp, _grpPort, _userName, _groupName);
     
     system(listener);
     system(sender);

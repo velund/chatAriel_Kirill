@@ -9,7 +9,6 @@
 
 #include "group.h"
 
-#define MIN_PORT_NUM 1025
 #define IPV4_ADDRESS_SIZE 20
 
 #define INTERN_SUCCESS 0
@@ -24,6 +23,7 @@ struct Group{
 
 /* ------------ HELPER FUNCTIONS PROTOTYPES ------------ */
 
+static int CheckIP4Multicast(char* _ipv4Address);
 
 /* ------------------------------------- Main FUNCTIONS ------------------------------------- */
 
@@ -31,7 +31,7 @@ Group *GroupCreate(char* _name, char* _ipv4Address, int _port)
 {
     Group* newGroup;
     
-    if(_name == NULL || strlen(_name) < MIN_GROUP_NAME_LENGTH || strlen(_name) > MAX_GROUP_NAME_LENGTH || _ipv4Address == NULL || _port < MIN_PORT_NUM)
+    if(_name == NULL || strlen(_name) < MIN_GROUP_NAME_LENGTH || strlen(_name) > MAX_GROUP_NAME_LENGTH || _ipv4Address == NULL || _port < MIN_PORT_NUM || CheckIP4Multicast(_ipv4Address) != INTERN_SUCCESS)
     {
         return NULL;
     }
@@ -117,3 +117,23 @@ GROUP_ERR GroupGetName(Group* _group, char* _nameOutput)
 
 
 /* ------------------------------------- Helper FUNCTIONS ------------------------------------- */
+
+
+static int CheckIP4Multicast(char* _ipv4Address)
+{
+    int first3int;
+    char first3Digits[4];
+
+    first3Digits[0] = _ipv4Address[0];
+    first3Digits[1] = _ipv4Address[1];
+    first3Digits[2] = _ipv4Address[2];
+    first3Digits[3] = '\0';
+
+    sscanf(first3Digits, "%d", &first3int);
+
+    if(first3int < 224 || first3int > 239)
+    {
+        return INTERN_FAIL;
+    }
+    return INTERN_SUCCESS;
+}
