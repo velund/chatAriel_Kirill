@@ -14,15 +14,16 @@
         Saves group in hash map using name as key and group struct as value.
 */
 
-#define HASH_MAP_SIZE 20
-#define IPV4_STRING_SIZE 20
-#define MIN_GROUP_NUM 1
 
-#define PORT 5555
+#define IPV4_STRING_SIZE 20
+#define HASH_MAP_SIZE 20 /* TBD: next prime num */
+
 
 struct GroupMng{
     HashMap* m_groups;
     Queue *m_freeAddr;
+    size_t m_maxGroups; /* max address as max groups */
+    size_t m_currentNumOfGroups;
 } ;
 
 /* -------------- Hash Map Functions Declaretions -------------- */
@@ -46,6 +47,7 @@ void GroupMngHashGroupValDestroy(void* _group);
 /* Add */
 static char* HashNameAsKeyCreate(char* _name);
 
+/* Get list of groups */
 int GetListHashActFunc(const void* _key, void* _value, void* _vector);
 
 /* ------------------------------------------------------ Main Functions ------------------------------------------------------ */
@@ -75,10 +77,14 @@ GroupMng* GroupMngCreate(size_t _maxGroupsNum)
     newGroupMng->m_freeAddr = CreateFreeAddrQ(_maxGroupsNum);
     if(newGroupMng->m_freeAddr == NULL)
     {
-        HashMapDestroy(&newGroupMng->m_groups, NULL, NULL); /* TODO: Problem destroying */
+        HashMapDestroy(&newGroupMng->m_groups, NULL, NULL); 
         free(newGroupMng);
         return NULL;
     }
+
+    newGroupMng->m_maxGroups = _maxGroupsNum;
+    newGroupMng->m_currentNumOfGroups = 0;
+
     return newGroupMng;
 }
 
@@ -103,6 +109,11 @@ GROUP_MNG_ERR GroupMngAdd(GroupMng* _groupMng, char* _groupName, char* _ipOutput
     if(_groupMng == NULL || _groupName == NULL || _ipOutput == NULL || _portOutput == NULL)
     {
         return GROUP_MNG_NOT_INITALIZED;
+    }
+
+    if(_groupMng->m_currentNumOfGroups == _groupMng->m_maxGroups)
+    {
+        return GROUP_MNG_OVERFLOW;
     }
 
     nameKey = HashNameAsKeyCreate(_groupName);
@@ -133,6 +144,8 @@ GROUP_MNG_ERR GroupMngAdd(GroupMng* _groupMng, char* _groupName, char* _ipOutput
         return GROUP_MNG_ADD_ERR;
     }
 
+    (_groupMng->m_currentNumOfGroups)++;
+
     strcpy(_ipOutput, freeAddr); /* return new group address */
     *_portOutput = PORT;
     return GROUP_MNG_SUCCESS;
@@ -158,6 +171,7 @@ GROUP_MNG_ERR GroupMngRemove(GroupMng* _groupMng, char* _groupName)
     GroupDestroy(&wantedGroup, &ipOutput);
     QueueInsert(_groupMng->m_freeAddr, (void*)ipOutput);
     free(groupKeyOutput);
+    (_groupMng->m_currentNumOfGroups)--;
     return GROUP_MNG_SUCCESS;
 }
 
@@ -219,7 +233,7 @@ GROUP_MNG_ERR GroupMngGetGroupList(GroupMng* _groupMng, Vector *_list)
         return GROUP_MNG_NOT_INITALIZED;
     }
 
-    if(HashMapNumOfElements(_groupMng->m_groups) == 0)
+    if(_groupMng->m_currentNumOfGroups == 0)
     {
         return GROUP_MNG_EMPTY;
     }

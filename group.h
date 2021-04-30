@@ -39,15 +39,15 @@ typedef enum GROUP_ERR{
  * Inputs: Pointer to name string, IPv4 address string and port number.
  * Outputs: Pointer to created group or NULL
  * Errors: NULL if given parameters not initalized, given name too long or short (modified as a #define above), 
- *         port num too low (modified as a #define above), given IP address not valid for multicast.
+ *         port num too low (modified as a #define above), given IP address not valid for multicast, or alloc failed.
 */
 Group *GroupCreate(char* _name, char* _ipv4Address, int _port);
 
 /*
  * Description: Destroy given group and extract the address.
  * Inputs: pointer to group pointer and pointer to save the extracted ip address.
- * Outputs:
- * Errors:
+ * Outputs: NONE.
+ * Errors: Won't detroy if given parameters not initalized.
 */
 void GroupDestroy(Group** _group, char** _ipOutput);
 
