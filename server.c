@@ -392,7 +392,7 @@ static SRVR_RUN_ACT HandleClients(TCPServer* _tcpServer)
                 removeClientItr = currentItr;
                 currentItr = ListItrNext(currentItr);
 
-                _tcpServer->m_appFunc.m_closeClientFunc(_tcpServer, currentClientSock, _tcpServer->m_appFunc.m_closeClientContext);  /* shoule be closed */
+                _tcpServer->m_appFunc.m_closeClientFunc(_tcpServer, currentClientSock, _tcpServer->m_appFunc.m_closeClientContext);  /* should be closed */
                 RemoveClient(_tcpServer, removeClientItr);
                 break;
 

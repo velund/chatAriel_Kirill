@@ -5,7 +5,10 @@
 
 /*****************************************************************************
 * Description:
-* 
+* Generic user.
+* Holds a name, password, connection flag and list of groups it connected currently.
+* TBD:
+* Group list is actually needed?
 *****************************************************************************/
 
 #define MIN_USERNAME_LENGTH 1
@@ -31,8 +34,6 @@ typedef enum USER_ERR{
 /*---------------------------------- Typedef --------------------------------*/
 
 typedef struct User User;
-
-
 
 /*---------------------------------- Functions Declaretions --------------------------------*/
 
@@ -83,6 +84,11 @@ USER_ERR UserConnect(User* _user, char* _pass);
  * Errors: USER_NOT_VALID if given parameters not initalized, 
 */
 USER_ERR UserDisconnect(User* _user);
+
+
+
+
+/* --------- SHOULD BE ACTUALLY USED ???? --------- */
 
 /*
  * Description: 

@@ -5,6 +5,7 @@
 
 CHAT_OPENER_ERR openChat(char  *_grpIp, int _grpPort, char* _userName, char* _groupName, int _chatId)
 {
+
 	char geometryListener[13];
 	char geometrySender[13];
 	char listener[100];
@@ -17,6 +18,7 @@ CHAT_OPENER_ERR openChat(char  *_grpIp, int _grpPort, char* _userName, char* _gr
 	system(listener);
 	system(sender);
 	return 0;
+
 }
 
 CHAT_OPENER_ERR closeChat(char  *_grpIp, int _grpPort, char* _userName, char* _groupName, int _chatId)

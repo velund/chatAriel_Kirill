@@ -408,11 +408,11 @@ PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Add
     if(_packedMsg == NULL || _ipv4Addr == NULL || _port == NULL)
     {
         return PROTOCOL_MSG_NOT_INITALIZED;
-    }
+    }/*
     if(_packedMsg[2] != GROUP_CREATED && _packedMsg[2] != GROUP_JOINED)
     {
         return PROTOCOL_UNPACK_GROUP_ERR;
-    }
+    }*/
 
     addrLen = _packedMsg[3];
     portLen = _packedMsg[4 + addrLen];

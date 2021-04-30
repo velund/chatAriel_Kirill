@@ -23,9 +23,7 @@ struct User {
 
 /* ------------------- Helper Functions Prototypes ------------------- */
 
-
 static int GroupDisconnectAction(void* _group, void* _null);
-
 
 /* ------------------------- Main Functions ------------------------- */
 
@@ -64,7 +62,7 @@ void UserDestroy(User** _user)
     {
         return;
     }
-    ListDestroy(&(*_user)->m_groups, NULL); 
+    ListDestroy(&(*_user)->m_groups, NULL); /* TODO: Destroy if needed */
     free(*_user);
     *_user = NULL;
 }
@@ -123,6 +121,9 @@ USER_ERR UserDisconnect(User* _user)
     _user->m_isActive = USER_INACTIVE;
     return USER_SUCCESS;
 }
+
+
+/* --------- SHOULD BE ACTUALLY USED ???? --------- */
 
 USER_ERR UserGroupDisconnect(User* _user) /* TODO: Disconnect user from all groups */
 {
