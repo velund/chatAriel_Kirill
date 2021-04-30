@@ -7,20 +7,22 @@
 * Description:
 * Generic user.
 * Holds a name, password, connection flag and list of groups it connected currently.
-* TBD:
-* Group list is actually needed?
 *****************************************************************************/
 
 #define MIN_USERNAME_LENGTH 1
 #define MIN_USER_PASS_LENGTH 1
+
+#include "list.h"
 
 /*------------------------------------ Enum  --------------------------------*/
 
 typedef enum USER_ERR{
     USER_SUCCESS,
     USER_NOT_INITALIZED,
+    USER_ALLOC_FAIL,
 
-    USER_NOT_VALID,
+    USER_GRP_INSERT_FAIL,
+    USER_GRP_NOT_FOUND,
 
     USER_NAME_SIMILAR,
     USER_NAME_NOT_SIMILAR,
@@ -65,7 +67,7 @@ USER_ERR UserNameCmp(char* _name, User* _user);
  * Description: Check if given pass and given user's pass are the same
  * Inputs: pointer to pass and to user.
  * Outputs: USER_PASS_CORRECT, USER_PASS_INCORRECT
- * Errors: USER_NOT_VALID if given parameters not initalized, 
+ * Errors: USER_NOT_INITALIZED if given parameters not initalized, 
 */
 USER_ERR UserPassCheck(char* _pass, User* _user);
 
@@ -73,7 +75,7 @@ USER_ERR UserPassCheck(char* _pass, User* _user);
  * Description: Declare a given user as connected if pass correct.
  * Inputs: User pointer and pass pointer.
  * Outputs: USER_PASS_INCORRECT, USER_SUCCESS
- * Errors: USER_NOT_VALID if given parameters not initalized, 
+ * Errors: USER_NOT_INITALIZED if given parameters not initalized, 
 */
 USER_ERR UserConnect(User* _user, char* _pass); 
 
@@ -81,19 +83,33 @@ USER_ERR UserConnect(User* _user, char* _pass);
  * Description: Declare a given user as disconnected.
  * Inputs: User pointer.
  * Outputs: USER_SUCCESS
- * Errors: USER_NOT_VALID if given parameters not initalized, 
+ * Errors: USER_NOT_INITALIZED if given parameters not initalized, 
 */
 USER_ERR UserDisconnect(User* _user);
 
 
+/*
+ * Description: Get user's list of currently connected groups.
+ * Inputs: User pointer, pointer to save list pointer to.
+ * Outputs: USER_SUCCESS
+ * Errors: USER_NOT_INITALIZED if given parameters not initalized, 
+*/
+USER_ERR UserGetGrpList(User* _user, List** _grpList);
 
-
-/* --------- SHOULD BE ACTUALLY USED ???? --------- */
 
 /*
- * Description: 
- * Inputs:
- * Outputs:
- * Errors:
+ * Description: Declare user as joined the given group name.
+ * Inputs: User pointer, name of group
+ * Outputs: USER_SUCCESS
+ * Errors: USER_NOT_INITALIZED if given parameters not initalized, USER_ALLOC_FAIL, USER_GRP_INSERT_FAIL, 
 */
-USER_ERR UserGroupDisconnect(User* _user); /* TODO: Disconnect user from all groups */ 
+USER_ERR UserGroupJoined(User* _user, char* _grpName);
+
+
+/*
+ * Description: Declare user as left the given group name.
+ * Inputs: User pointer, name of group
+ * Outputs: USER_SUCCESS
+ * Errors: USER_NOT_INITALIZED if given parameters not initalized, USER_GRP_NOT_FOUND
+*/
+USER_ERR UserGroupLeft(User* _user, char* _grpName);

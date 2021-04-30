@@ -23,7 +23,7 @@ struct User {
 
 /* ------------------- Helper Functions Prototypes ------------------- */
 
-static int GroupDisconnectAction(void* _group, void* _null);
+static void GrpListDestroy(void *_grpName);
 
 /* ------------------------- Main Functions ------------------------- */
 
@@ -62,16 +62,17 @@ void UserDestroy(User** _user)
     {
         return;
     }
-    ListDestroy(&(*_user)->m_groups, NULL); /* TODO: Destroy if needed */
+    ListDestroy(&(*_user)->m_groups, GrpListDestroy);
     free(*_user);
     *_user = NULL;
 }
+
 
 USER_ERR UserNameCmp(char* _name, User* _user)
 {
     if(_name == NULL || _user == NULL)
     {
-        return USER_NOT_VALID;
+        return USER_NOT_INITALIZED;
     }
     if(strcmp(_name, _user->m_name) == 0)
     {
@@ -84,7 +85,7 @@ USER_ERR UserPassCheck(char* _pass, User* _user)
 {
     if(_pass == NULL || _user == NULL)
     {
-        return USER_NOT_VALID;
+        return USER_NOT_INITALIZED;
     }
     if(strcmp(_pass, _user->m_pass) == 0)
     {
@@ -122,20 +123,73 @@ USER_ERR UserDisconnect(User* _user)
     return USER_SUCCESS;
 }
 
-
-/* --------- SHOULD BE ACTUALLY USED ???? --------- */
-
-USER_ERR UserGroupDisconnect(User* _user) /* TODO: Disconnect user from all groups */
+USER_ERR UserGetGrpList(User* _user, List** _grpList)
 {
-    if(_user == NULL)
+    if(_user == NULL || _grpList == NULL)
     {
         return USER_NOT_INITALIZED;
     }
-    ListItrForEach(ListItrBegin(_user->m_groups), ListItrEnd(_user->m_groups), GroupDisconnectAction, NULL); /* TODO: group disconnect helper func */
+
+    *_grpList = _user->m_groups;
+
     return USER_SUCCESS;
 }
 
-static int GroupDisconnectAction(void* _group, void* _null)
+USER_ERR UserGroupJoined(User* _user, char* _grpName)
 {
+    char* newGroup;
 
+    if(_user == NULL || _grpName == NULL)
+    {
+        return USER_NOT_INITALIZED;
+    }
+
+    newGroup = malloc(sizeof(char) * (strlen(_grpName) + 1));
+    if(newGroup == NULL)
+    {
+        return USER_ALLOC_FAIL;
+    }
+
+    strcpy(newGroup, _grpName);
+
+    if(ListPushTail(_user->m_groups, (void*)newGroup) != LIST_SUCCESS)
+    {
+        free(newGroup);
+        return USER_GRP_INSERT_FAIL;
+    }
+
+    return USER_SUCCESS;
+}
+
+USER_ERR UserGroupLeft(User* _user, char* _grpName)
+{
+    ListItr currentItr;
+    char* currentGrpName;
+
+    if(_user == NULL || _grpName == NULL)
+    {
+        return USER_NOT_INITALIZED;
+    }
+
+    currentItr = ListItrBegin(_user->m_groups);
+
+    while(currentItr != ListItrEnd(_user->m_groups) )
+    {
+        currentGrpName = (char*)ListItrGet(currentItr);
+        if(strcmp(_grpName, currentGrpName) == 0)
+        {
+            ListItrRemove(currentItr);
+            free(currentGrpName);
+            return USER_SUCCESS;
+        }
+    }
+
+    return USER_GRP_NOT_FOUND;
+}
+
+/* -------- HELPER functions -------- */
+
+static void GrpListDestroy(void *_grpName)
+{
+    free(_grpName);
 }

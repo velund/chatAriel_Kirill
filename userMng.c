@@ -163,6 +163,68 @@ USER_MNG_ERR UserMngDisconnect(UserMng* _userMng, char* _name) /* TODO: should i
     return USER_MNG_SUCCESS;
 }
 
+USER_MNG_ERR UserMngGroupJoined(UserMng* _userMng, char* _userName, char* _grpName)
+{
+    User *foundUser;
+
+    if(_userMng == NULL || _grpName == NULL)
+    {
+        return USER_MNG_NOT_INITALIZED;
+    }
+
+    if (HashMapFind(_userMng->m_users, (void*)_userName, (void**)&foundUser) == MAP_KEY_NOT_FOUND_ERROR )
+    {
+        return USER_MNG_USER_NOT_FOUND;
+    }
+
+    if (UserGroupJoined(foundUser, _grpName) != USER_SUCCESS)
+    {
+        return USER_MNG_GRP_JOIN_FAIL;
+    }
+    return USER_MNG_SUCCESS;
+}
+
+USER_MNG_ERR UserMngGroupLeft(UserMng* _userMng, char* _userName, char* _grpName)
+{
+    User *foundUser;
+
+    if(_userMng == NULL || _grpName == NULL)
+    {
+        return USER_MNG_NOT_INITALIZED;
+    }
+
+    if (HashMapFind(_userMng->m_users, (void*)_userName, (void**)&foundUser) == MAP_KEY_NOT_FOUND_ERROR )
+    {
+        return USER_MNG_USER_NOT_FOUND;
+    }
+
+    if (UserGroupLeft(foundUser, _grpName) != USER_SUCCESS)
+    {
+        return USER_MNG_GRP_LEAVE_FAIL;
+    }
+    return USER_MNG_SUCCESS;
+}
+
+USER_MNG_ERR UserMngGetUserGrps(UserMng* _userMng, char* _userName, List** _grpList)
+{
+    User *foundUser;
+
+    if(_userMng == NULL || _userName == NULL || _grpList == NULL)
+    {
+        return USER_MNG_NOT_INITALIZED;
+    }
+
+    if (HashMapFind(_userMng->m_users, (void*)_userName, (void**)&foundUser) == MAP_KEY_NOT_FOUND_ERROR )
+    {
+        return USER_MNG_USER_NOT_FOUND;
+    }
+
+    if (UserGetGrpList(foundUser, _grpList) != USER_SUCCESS)
+    {
+        return USER_MNG_FAIL;
+    }
+    return USER_MNG_SUCCESS;
+}
 
 
 /* ------------------------- Hash Helper Functions ------------------------- */
