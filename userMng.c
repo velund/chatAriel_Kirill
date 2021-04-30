@@ -27,6 +27,8 @@ static void HashUserDestroy(void *_userStruct);
 static void ReadUsers(UserMng* _mng);
 static void WriteUser(char* _name, char* _pass);
 
+static USER_MNG_ERR UserAdd(UserMng* _userMng, char* _name, char* _pass);
+
 /* ------------------------- Main Functions ------------------------- */
 
 UserMng* UserMngCreate(size_t _numOfBuckets)
@@ -54,7 +56,7 @@ UserMng* UserMngCreate(size_t _numOfBuckets)
     return newMng;
 }
 
-static void ReadUsers(UserMng* _mng) /* TODO; should i respond to errors? Use static for scanning and adding */
+static void ReadUsers(UserMng* _mng) /* TODO; should i respond to errors?*/
 {
     FILE* savedUsers;
     char userName[USER_NAME_SIZE], password[PASS_SIZE], ch;
@@ -67,11 +69,13 @@ static void ReadUsers(UserMng* _mng) /* TODO; should i respond to errors? Use st
 
     while( fscanf(savedUsers, "%s %s\n", userName, password) == 2)
     {
-        UserMngAdd(_mng, userName, password); 
+        UserAdd(_mng, userName, password);
     }
     fclose(savedUsers);
-    
 }
+
+
+
 void UserMngDestroy(UserMng** _userMng)
 {
     if(_userMng == NULL || *_userMng == NULL)
@@ -87,45 +91,20 @@ USER_MNG_ERR UserMngAdd(UserMng* _userMng, char* _name, char* _pass)
 {
     User* newUser;
     char* newUserKey;
-    MAP_RESULT hashRes;
+    USER_MNG_ERR addRes;
 
     if(_userMng == NULL || _name == NULL || _pass == NULL)
     {
         return USER_MNG_NOT_INITALIZED;
     }
 
-    newUserKey = malloc(strlen(_name) * sizeof(char));
-    if(newUserKey == NULL)
-    {
-        return USER_MNG_CREATE_FAIL;
-    }
-    strcpy(newUserKey, _name);
+    addRes = UserAdd(_userMng, _name, _pass);
 
-    newUser = UserCreate(_name, _pass);
-    if(newUser == NULL)
-    {
-        return USER_MNG_CREATE_FAIL;
-    }
-
-    hashRes = HashMapInsert(_userMng->m_users, (void*)newUserKey, (void*)newUser);
-
-    if(hashRes == MAP_KEY_DUPLICATE_ERROR)
-    {
-        UserDestroy(&newUser);
-        free(newUserKey);
-        return USER_MNG_USER_EXISTS;
-    }
-    else if(hashRes == MAP_ALLOCATION_ERROR)
-    {
-        UserDestroy(&newUser);
-        free(newUserKey);
-        return USER_MNG_CREATE_FAIL;
-    }
-    else if(hashRes == MAP_SUCCESS)
+    if(addRes == USER_MNG_USER_ADDED)
     {
         WriteUser(_name, _pass);
-        return USER_MNG_USER_ADDED;
     }
+    return addRes;
 }
 
 static void WriteUser(char* _name, char* _pass)
@@ -253,4 +232,46 @@ static void HashUserKeyDestroy(void *_userName)
 static void HashUserDestroy(void *_userStruct)
 {
     UserDestroy( (User**)&_userStruct );
+}
+
+
+/* ------------------------- MNG Helper Functions ------------------------- */
+
+static USER_MNG_ERR UserAdd(UserMng* _userMng, char* _name, char* _pass)
+{
+    User* newUser;
+    char* newUserKey;
+    MAP_RESULT hashRes;
+
+    newUserKey = malloc(strlen(_name) * sizeof(char));
+    if(newUserKey == NULL)
+    {
+        return USER_MNG_CREATE_FAIL;
+    }
+    strcpy(newUserKey, _name);
+
+    newUser = UserCreate(_name, _pass);
+    if(newUser == NULL)
+    {
+        return USER_MNG_CREATE_FAIL;
+    }
+
+    hashRes = HashMapInsert(_userMng->m_users, (void*)newUserKey, (void*)newUser);
+
+    if(hashRes == MAP_KEY_DUPLICATE_ERROR)
+    {
+        UserDestroy(&newUser);
+        free(newUserKey);
+        return USER_MNG_USER_EXISTS;
+    }
+    else if(hashRes == MAP_ALLOCATION_ERROR)
+    {
+        UserDestroy(&newUser);
+        free(newUserKey);
+        return USER_MNG_CREATE_FAIL;
+    }
+    else if(hashRes == MAP_SUCCESS)
+    {
+        return USER_MNG_USER_ADDED;
+    }
 }
