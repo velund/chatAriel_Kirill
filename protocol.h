@@ -116,7 +116,6 @@ typedef enum MSG_RESPONSE{
 
 /*-------------------------- Functions declarations -------------------------*/
 
-/* TODO; protocol get list of groups */
 
 PackedMessage ProtocolPackLogoutReq(size_t *_pckMsgSize);
 

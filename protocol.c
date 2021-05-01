@@ -272,6 +272,29 @@ PROTOCOL_ERR ProtocolUnpackUserName(PackedMessage _packedMsg, char* _userName)
     return PROTOCOL_SUCCESS;
 }
 
+PackedMessage ProtocolPackLogoutReq(size_t *_pckMsgSize)
+{
+    PackedMessage packedMsg;
+
+    if(_pckMsgSize == NULL)
+    {
+        return NULL;
+    }
+
+    packedMsg = malloc(sizeof(Byte) * 2);
+    if(packedMsg == NULL)
+    {
+        return NULL;
+    }
+
+    packedMsg[MSG_TYPE_B] = LOGOUT_REQ;
+    packedMsg[MSG_LEN_B] = 2;
+    
+    *_pckMsgSize = 2;
+
+    return packedMsg;
+}
+
 
 /* ---- Group functions ---- */
 
