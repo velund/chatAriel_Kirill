@@ -201,6 +201,7 @@ GROUP_MNG_ERR GroupMngJoin(GroupMng* _groupMng, char* _groupName, char* _ipOutpu
 GROUP_MNG_ERR GroupMngLeave(GroupMng* _groupMng, char* _groupName)
 {
     Group* wantedGroup;
+    GROUP_ERR disconnectRes;
 
     if(_groupMng == NULL)
     {
@@ -212,14 +213,17 @@ GROUP_MNG_ERR GroupMngLeave(GroupMng* _groupMng, char* _groupName)
         return GROUP_MNG_GROUP_NOT_EXISTS;
     }
 
-    if( GroupDisconnect(wantedGroup) == GROUP_SUCCESS)
+    disconnectRes = GroupDisconnect(wantedGroup);
+
+    if( disconnectRes == GROUP_SUCCESS)
     {
         return GROUP_MNG_SUCCESS;
     }
 
-    if(GroupDisconnect(wantedGroup) == GROUP_EMPTY)
+    if(disconnectRes == GROUP_EMPTY)
     {
-        DestroyGroupFromMng(_groupMng, wantedGroup);
+        GroupMngRemove(_groupMng, _groupName);
+        /*DestroyGroupFromMng(_groupMng, wantedGroup);*/
         return GROUP_MNG_SUCCESS;
     }
 
@@ -352,6 +356,7 @@ static void DestroyAddrQ(Queue** _addrQ)
 static void DestroyGroupFromMng(GroupMng* _groupMng, Group* _grp)
 {
     char *ipOutput;
+
     GroupDestroy(&_grp, &ipOutput);
     QueueInsert(_groupMng->m_freeAddr, (void*)ipOutput);
 }

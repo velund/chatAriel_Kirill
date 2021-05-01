@@ -33,14 +33,14 @@ CHAT_OPENER_ERR openChat(char *_grpIp, int _grpPort, char *_userName, char *_gro
 
 	system(listener);
 	system(sender);
-	return 0;
+	return CHAT_OPENER_SUCCESS;
 }
 
 CHAT_OPENER_ERR closeChat(char *_grpName)
 {
 	int listennerPid, senderPid;
 	CHAT_OPENER_ERR check;
-	if ( (check = removePidFromFile(SENDER_PID_FNAME, _grpName, &listennerPid)) != CHAT_OPENER_SUCCESS){ return check; } 
+	if ( (check = removePidFromFile(LISTENER_PID_FNAME, _grpName, &listennerPid)) != CHAT_OPENER_SUCCESS){ return check; } 
 	if ( (check = removePidFromFile(SENDER_PID_FNAME, _grpName, &senderPid)) != CHAT_OPENER_SUCCESS){ return check; } 
 
 	kill(listennerPid, SIGKILL);

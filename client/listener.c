@@ -6,6 +6,7 @@
 #include <stdlib.h> /* exit() */
 #include <string.h> /* memset() */
 #include "chatDefs.h"
+#include <unistd.h> /* getpid() */
 
 /* HELPER */
 static int SetSockReusable(int _sock);

@@ -431,6 +431,7 @@ static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, size_t _clientID, char* 
 {
     USER_MNG_ERR logoutRes;
     char userName[USER_NAME_LENGTH];
+    printf("User logout start\n");
 
     if( ProtocolUnpackUserName(_msg, userName) != PROTOCOL_SUCCESS)
     {
@@ -442,27 +443,31 @@ static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, size_t _clientID, char* 
     if( GetClientUsername(_serverApp, _clientID, userName) != SUCCESS )
     {
         SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
+        printf("User get user name error\n");
         return;
     }
 
     if (LeaveAllUserGroups(_serverApp, userName) != SUCCESS)
     {
         SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
+        printf("User logout leave groups error\n");
         return;
     }
 
     if(UserMngDisconnect(_serverApp->m_userMng, userName) != USER_MNG_SUCCESS)
     {
         SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
+        printf("User logout Disconnect error\n");
         return;
     }
-
+    printf("User logout\n");
     SendAppResp(_serverApp, _clientID, LOGOUT_REC, USER_DISCONNECTED);
 }
 
 static APP_INTERN_ERR LeaveAllUserGroups(ServerApp* _serverApp, char *_userName)
 {
     List* grpList;
+    char* currentGrp;
     ListItr currentItr;
 
     if( UserMngGetUserGrps(_serverApp->m_userMng, _userName, &grpList) != USER_MNG_SUCCESS)
@@ -474,10 +479,12 @@ static APP_INTERN_ERR LeaveAllUserGroups(ServerApp* _serverApp, char *_userName)
 
     while(currentItr != ListItrEnd(grpList))
     {
-        if( GroupMngLeave(_serverApp->m_groupMng, (char*)ListItrGet(currentItr)) != GROUP_MNG_SUCCESS)
+        currentGrp = (char*)ListItrGet(currentItr);
+        if( GroupMngLeave(_serverApp->m_groupMng, currentGrp) != GROUP_MNG_SUCCESS)
         {
             return GEN_FAIL;
         }
+        currentItr = ListItrNext(currentItr);
     }
 
     return SUCCESS;

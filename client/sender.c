@@ -4,6 +4,7 @@
 #include <stdio.h> /* scanf(), perror() */
 #include <stdlib.h> /* exit() */
 #include <string.h> /* memset() */
+#include <unistd.h> /* getpid() */
 #include "chatDefs.h"
 
 /* HELPER */

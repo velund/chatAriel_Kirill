@@ -67,7 +67,7 @@ int main(void)
                 break;
             }
             showGroups(groupList);
-
+            
             ClientUIGetGroupName(groupName);
             printf("Asked to join group %s\n", groupName);
             joinGroup(myClient, groupName);
