@@ -335,6 +335,7 @@ CLIENT_APP_ERR recieveGroupsVector(Client *_client, Vector *_vector)
 	{ 
 		return RECVING_FAIL;
 	}
+	if ( ProtocolGetMsgResponse(buffer) != GROUP_LIST_SUCCESS ) { return NULL; }
 	if ( (ProtocolUnpackGroupList(buffer, _vector)) != PROTOCOL_SUCCESS ) 
 	{ 
 		return CLIENT_APP_UNPACKING_GRP_VECT_FAILED; 
