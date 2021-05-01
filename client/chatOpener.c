@@ -22,10 +22,10 @@ CHAT_OPENER_ERR removePidFromFile(char *_fileName, char *_grpName, int *_pid);
 /* end assist funcs */
 CHAT_OPENER_ERR openChat(char *_grpIp, int _grpPort, char *_userName, char *_groupName, int _chatId)
 {
-	char geometryListener[13];
-	char geometrySender[13];
-	char listener[100];
-	char sender[100];
+	char geometryListener[20];
+	char geometrySender[20];
+	char listener[200];
+	char sender[200];
 	sprintf(geometryListener, "20x20+%d+250", _chatId * 100);
 	sprintf(geometrySender, "20x5+%d+500", _chatId * 100);
 	sprintf(listener, "gnome-terminal --hide-menubar --geometry %s -t %s -- ./listen.out %s %d %s", geometryListener, _groupName, _grpIp, _grpPort, _groupName);
