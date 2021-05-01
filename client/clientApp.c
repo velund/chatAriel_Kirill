@@ -361,6 +361,7 @@ CLIENT_APP_ERR closeAllChats(Client *_client)
 	char *grpName;
 	for (i=0; i< getClientNumOfGroups(_client); i++)
 	{
+		printf("inclose all chts: %d\n",getClientNumOfGroups(_client) );
 		grpName = getFirstGroupName(_client);
 		closeTheChat(_client, grpName);
 	}

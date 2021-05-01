@@ -4,7 +4,7 @@
 
 #define BACK_LOG_SIZE 10
 #define BUFFER_SIZE 200
-#define IP_ADDRESS "192.168.1.109"
+#define IP_ADDRESS "127.0.0.1"
 #define MAX_CLIENTS_NUM 20
 #define PORT 8080
 

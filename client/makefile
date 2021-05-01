@@ -30,4 +30,4 @@ serverAppMain.o: serverAppMain.c serverApp.c serverApp.h lib_struct.a
 clean:
 	rm -f server.o userStruct.o userMng.o protocol.o serverApp.o serverAppMain.o
 	
-	# gcc -ansi -pedantic -g chatOpener.c clientApp.c clientMainUI.c clientNet.c clientUI.c protocol.c lib_struct.a
+	# gcc -ansi -pedantic -g chatOpener.c clientApp.c clientMainUI.c clientNet.c clientUI.c protocol.c lib_struct.a 
