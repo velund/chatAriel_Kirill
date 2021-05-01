@@ -70,11 +70,11 @@ int main(void)
 
             ClientUIGetGroupName(groupName);
             printf("Asked to join group %s\n", groupName);
-            joinGroup(myClient, myClient);
+            joinGroup(myClient, groupName);
             break;
         case ACT_LEAVE_GRP:
             ClientUIGetGroupName(groupName);
-            leaveGroup(myClient, myClient);
+            leaveGroup(myClient, groupName);
             break;
         case ACT_LOGOUT: /* TODO: proper exit */
             LogOutClient(myClient, userName);

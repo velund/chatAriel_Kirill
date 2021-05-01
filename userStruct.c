@@ -234,6 +234,7 @@ static ListItr FindUsersGrpItr(User* _user, char* _grpName)
         {
             return currentItr;
         }
+        currentItr = ListItrNext(currentItr);
     }
     return NULL;
 }
