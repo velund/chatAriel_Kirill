@@ -564,7 +564,7 @@ static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, size_t _clientID, char* _
         return ;
     }
 
-    SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort); /* TODO: Change to group joined!!! */
+    SendGroupDetails(_serverApp, GROUP_JOINED,_clientID, groupIP, groupPort); 
     UIGroupJoined(_clientID, groupName, groupIP, groupPort);
 }
 

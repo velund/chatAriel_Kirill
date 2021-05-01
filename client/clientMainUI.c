@@ -64,21 +64,22 @@ int main(void)
             if(groupList == NULL)
             {
                 printf("Error getting groups\n");
-                
+                break;
             }
             showGroups(groupList);
 
-
             ClientUIGetGroupName(groupName);
             printf("Asked to join group %s\n", groupName);
-            joinGroup(myClient, groupName);
+            joinGroup(myClient, myClient);
             break;
         case ACT_LEAVE_GRP:
-            
+            ClientUIGetGroupName(groupName);
+            leaveGroup(myClient, myClient);
             break;
         case ACT_LOGOUT: /* TODO: proper exit */
+            LogOutClient(myClient, userName);
             destroyClientConnection(&myClient);
-            exit(0);
+            exit(1);
             break;
         }
     }
