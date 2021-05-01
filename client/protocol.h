@@ -99,6 +99,7 @@ typedef enum MSG_RESPONSE{
      /* group join */
     GROUP_JOINED,
     GROUP_JOIN_FAIL,
+    GROUP_USER_CONNECTED,
 
      /* group leave */
     GROUP_LEFT,
@@ -119,10 +120,12 @@ typedef enum MSG_RESPONSE{
 
 PackedMessage ProtocolPackLogoutReq(size_t *_pckMsgSize);
 
+PackedMessage ProtocolPackGroupListRequest(size_t *_pckMsgSize);
+
+
 PROTOCOL_ERR ProtocolUnpackGroupList(PackedMessage _packedMsg, Vector* _saveListTo);
 
 
-PackedMessage ProtocolPackGroupListRequest(size_t *_pckMsgSize);
 
 MSG_RESPONSE ProtocolGetMsgResponse(PackedMessage _packedMsg); 
 
@@ -131,7 +134,6 @@ PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Add
 PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize);
 
 PackedMessage ProtocolPackGroupDetails(MSG_TYPE _type, MSG_RESPONSE _res ,char* _ipv4Addr, int _port, size_t *_pckMsgSize); /* Sends group details on success only! */
- /* Sends group details on success only! */
 
 
 PackedMessage ProtocolPackGroupName(MSG_TYPE _type, char* _groupName, size_t *_pckMsgSize) ;
@@ -159,8 +161,6 @@ PackedMessage ProtocolPackUserDetails(MSG_TYPE _type, char* _userName, char* _us
 */
 PackedMessage ProtocolPackUserName(MSG_TYPE _type, char* _userName, size_t *_pckMsgSize) ;
 
-
-
 /*
  * Description: Pack given response message
  * Inputs: MSG Type, response type, pointer to save the new size of message to
@@ -168,7 +168,6 @@ PackedMessage ProtocolPackUserName(MSG_TYPE _type, char* _userName, size_t *_pck
  * Errors: returns NULL if given paramaters not initalized.
 */
 PackedMessage ProtocolPackRespMsg(MSG_TYPE _type, MSG_RESPONSE _response, size_t *_pckMsgSize);
-
 
 /*
  * Description: Destroy and frees memory from packed message
@@ -185,8 +184,6 @@ void ProtocolPackedMsgDestroy(PackedMessage _msg);
  * Errors: MSG_TYPE_ERR if given message not initalized.
 */
 MSG_TYPE ProtocolGetMsgType(PackedMessage _packedMsg);
-
-
 
 /*
  * Description: Unpack user details from packed message. @ warning - do not use unless Get message type returns REG_REQ or LOGIN_REQ!

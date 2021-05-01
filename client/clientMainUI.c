@@ -64,6 +64,7 @@ int main(void)
             if(groupList == NULL)
             {
                 printf("Error getting groups\n");
+                
             }
             showGroups(groupList);
 

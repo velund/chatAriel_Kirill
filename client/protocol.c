@@ -271,6 +271,8 @@ PROTOCOL_ERR ProtocolUnpackUserName(PackedMessage _packedMsg, char* _userName)
 
     return PROTOCOL_SUCCESS;
 }
+
+
 /* ---- Group functions ---- */
 
 PackedMessage ProtocolPackGroupListRequest(size_t *_pckMsgSize)
@@ -327,7 +329,7 @@ PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize)
         free(groupName);
     }
 
-    msgSize = (Byte)(i - 1);
+    msgSize = (Byte)(i);
     packedMsg[MSG_LEN_B] = (Byte)msgSize;
     packedMsg[MSG_NUM_OF_GROUPS_B] = (Byte)groupNum;
 
@@ -408,11 +410,11 @@ PROTOCOL_ERR ProtocolUnpackGroupDetails(PackedMessage _packedMsg, char* _ipv4Add
     if(_packedMsg == NULL || _ipv4Addr == NULL || _port == NULL)
     {
         return PROTOCOL_MSG_NOT_INITALIZED;
-    }/*
+    }
     if(_packedMsg[2] != GROUP_CREATED && _packedMsg[2] != GROUP_JOINED)
     {
         return PROTOCOL_UNPACK_GROUP_ERR;
-    }*/
+    }
 
     addrLen = _packedMsg[3];
     portLen = _packedMsg[4 + addrLen];

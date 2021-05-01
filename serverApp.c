@@ -84,6 +84,7 @@ static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, size_t _clientID, cha
 static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
 static APP_INTERN_ERR AssignclientUsername(ServerApp* _serverApp, size_t _clientID, char* _username);
 static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
+static APP_INTERN_ERR LeaveAllUserGroups(ServerApp* _serverApp, char *_userName);
 
 static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
 static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
@@ -91,7 +92,7 @@ static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, size_t _clientID, char* 
 
 static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res, size_t _clientID, char* _ip, int _port);
 
-
+/* group list request */
 static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
 static void SendAppGroupList(ServerApp* _serverApp, size_t _clientID, Vector* _list); 
 
@@ -102,8 +103,8 @@ static APP_INTERN_ERR AddConnectedServerClient(ServerApp* _serverApp, ClientInfo
 static APP_INTERN_ERR DisconnectClientGroups(ConnectedClient* _client, ServerApp* _serverApp);
 
 
-static APP_INTERN_ERR GetClientUsername(ServerApp* _serverApp, size_t _clientID, char* _userNameOut);
-static APP_INTERN_ERR AssignclientUsername(ServerApp* _serverApp, size_t _clientID, char* _username);
+static APP_INTERN_ERR GetClientUsername(ServerApp* _serverApp, size_t _clientID, char* _userNameOut); /* needed for the user mananger actions */
+static APP_INTERN_ERR AssignclientUsername(ServerApp* _serverApp, size_t _clientID, char* _username); /* on login */
 void ListVectorNameDestroy(void* _name);
 
 
@@ -345,12 +346,308 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, size_t _clientID, char* _m
         LeaveGroup(_serverApp, _clientID, _msg, _msgSize);
         break;
 
-
     default:
         SendAppResp(_serverApp, _clientID, MSG_TYPE_ERR, GEN_ERROR);
         return MSG_TYPE_ERR;
         break;
     }
+}
+
+
+
+/* -------- Users -------- */
+
+static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
+{
+    USER_MNG_ERR addResult;
+    char userName[USER_NAME_LENGTH], userPass[USER_PASS_LENGTH];
+
+
+    if( ProtocolUnpackUserDetails(_msg, userName, userPass) != PROTOCOL_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, REG_REC, GEN_ERROR);
+        UIMsgRcvErr();
+        return;
+    }
+    
+    addResult = UserMngAdd(_serverApp->m_userMng, userName, userPass);
+
+    switch (addResult)
+    {
+    case USER_MNG_USER_EXISTS:
+        SendAppResp(_serverApp, _clientID, REG_REC, USER_EXISTS);
+        UIUserExistsRegErr(userName);
+        break;
+    case USER_MNG_USER_ADDED:
+        SendAppResp(_serverApp, _clientID, REG_REC, USER_CREATED);
+        UIUserCreated(userName);
+        break;
+    default:
+        SendAppResp(_serverApp, _clientID, REG_REC, GEN_ERROR);
+        break;
+    }
+    
+}
+
+static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
+{
+    USER_MNG_ERR loginRes;
+    char userName[USER_NAME_LENGTH], userPass[USER_PASS_LENGTH];
+
+    if( ProtocolUnpackUserDetails(_msg, userName, userPass) != PROTOCOL_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, LOGIN_REC, GEN_ERROR);
+        UIMsgRcvErr();
+        return MSG_READ_ERR;
+    }
+
+    loginRes = UserMngConnect(_serverApp->m_userMng, userName, userPass);
+ 
+    switch (loginRes)
+    {
+    case USER_MNG_USER_NOT_FOUND:
+        SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_NOT_FOUND);
+        break;
+    
+    case USER_MNG_PASS_INCORRECT:
+        SendAppResp(_serverApp, _clientID, LOGIN_REC, PASS_INCORRECT);
+        break;
+
+    case USER_MNG_ALREADY_CONNECT:
+        SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_ALREADY_CONNECTED);
+        break;
+    case USER_MNG_SUCCESS:
+        AssignclientUsername(_serverApp, _clientID, userName);
+        SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_CONNECTED);
+        break;
+
+    default:
+        SendAppResp(_serverApp, _clientID, LOGIN_REC, GEN_ERROR);
+        break;
+    }
+}
+
+static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
+{
+    USER_MNG_ERR logoutRes;
+    char userName[USER_NAME_LENGTH];
+
+    if( ProtocolUnpackUserName(_msg, userName) != PROTOCOL_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
+        UIMsgRcvErr();
+        return MSG_READ_ERR;
+    }
+
+    if( GetClientUsername(_serverApp, _clientID, userName) != SUCCESS )
+    {
+        SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
+        return;
+    }
+
+    if (LeaveAllUserGroups(_serverApp, userName) != SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
+        return;
+    }
+
+    if(UserMngDisconnect(_serverApp->m_userMng, userName) != USER_MNG_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
+        return;
+    }
+
+    SendAppResp(_serverApp, _clientID, LOGOUT_REC, USER_DISCONNECTED);
+}
+
+static APP_INTERN_ERR LeaveAllUserGroups(ServerApp* _serverApp, char *_userName)
+{
+    List* grpList;
+    ListItr currentItr;
+
+    if( UserMngGetUserGrps(_serverApp->m_userMng, _userName, &grpList) != USER_MNG_SUCCESS)
+    {
+        return GEN_FAIL;
+    }
+
+    currentItr = ListItrBegin(grpList);
+
+    while(currentItr != ListItrEnd(grpList))
+    {
+        if( GroupMngLeave(_serverApp->m_groupMng, (char*)ListItrGet(currentItr)) != GROUP_MNG_SUCCESS)
+        {
+            return GEN_FAIL;
+        }
+    }
+
+    return SUCCESS;
+}
+
+
+/* -------- GROUPS -------- */
+
+static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
+{
+    char userName[USER_NAME_LENGTH];
+
+    char groupName[GROUP_NAME_LENGTH];
+    char groupIP[IPV4_ADDRESS_SIZE];
+    int groupPort;
+
+    if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_CREATE_REQ, GEN_ERROR);
+        UIMsgRcvErr();
+        return MSG_READ_ERR;
+    }
+
+    if( GetClientUsername(_serverApp, _clientID, userName) != SUCCESS )
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        return;
+    }
+
+    if( GroupMngAdd(_serverApp->m_groupMng, groupName, groupIP, &groupPort) != GROUP_MNG_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_CREATE_REC, GROUP_CREATE_FAIL);
+        return;
+    }   
+    
+    if(UserMngGroupJoined(_serverApp->m_userMng, userName, groupName) != USER_MNG_SUCCESS)
+    {
+        GroupMngLeave(_serverApp->m_groupMng, groupName);
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        return ;
+    }
+
+    SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort);
+    UIGroupCreated(groupName, groupIP, groupPort);
+}
+
+static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
+{
+    char userName[USER_NAME_LENGTH];
+
+    char groupName[GROUP_NAME_LENGTH];
+    char groupIP[IPV4_ADDRESS_SIZE];
+    int groupPort;
+
+    if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        UIMsgRcvErr();
+        return MSG_READ_ERR;
+    }
+
+    if( GetClientUsername(_serverApp, _clientID, userName) != SUCCESS )
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        return;
+    }
+
+    if(UserMngIsUserInGrp(_serverApp->m_userMng, userName, groupName) == USER_MNG_IN_GRP)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GROUP_USER_CONNECTED);
+        return ;
+    }
+    
+    if (GroupMngJoin(_serverApp->m_groupMng, groupName, groupIP, &groupPort) != GROUP_MNG_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        return ;
+    }
+
+    if(UserMngGroupJoined(_serverApp->m_userMng, userName, groupName) != USER_MNG_SUCCESS)
+    {
+        GroupMngLeave(_serverApp->m_groupMng, groupName);
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        return ;
+    }
+
+    SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort); /* TODO: Change to group joined!!! */
+    UIGroupJoined(_clientID, groupName, groupIP, groupPort);
+}
+
+static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
+{
+    char groupName[GROUP_NAME_LENGTH];
+    char userName[USER_NAME_LENGTH];
+
+    if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GEN_ERROR);
+        UIMsgRcvErr();
+        return MSG_READ_ERR;
+    }
+
+    if( GetClientUsername(_serverApp, _clientID, userName) != SUCCESS )
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GEN_ERROR);
+        return;
+    }
+
+    if (UserMngGroupLeft(_serverApp->m_userMng, userName, groupName ) != USER_MNG_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GEN_ERROR);
+        return;
+    }
+
+    if(GroupMngLeave(_serverApp->m_groupMng, groupName) != GROUP_MNG_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GEN_ERROR);
+        return;
+    }
+
+    SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GROUP_LEFT);
+    UIGroupLeft(_clientID, groupName);
+}   
+
+/*---------------------------------------- CloseClient() Helper Functions ----------------------------------------*/
+
+
+static APP_INTERN_ERR DisconnectClientGroups(ConnectedClient* _client, ServerApp* _serverApp)
+{
+    List* grpList;
+    ListItr currentItr;
+
+    if( UserMngGetUserGrps(_serverApp->m_userMng, _client->userName, &grpList) != USER_MNG_SUCCESS)
+    {
+        return CLIENT_GRP_LIST_REQ_FAIL;
+    }
+
+    currentItr = ListItrBegin(grpList);
+    while (currentItr != ListItrEnd(grpList))
+    {
+        GroupMngLeave(_serverApp->m_groupMng, (char*)ListItrGet(currentItr));
+    }
+
+    return SUCCESS;
+}
+
+/*---------------------------------------- Send Functions ----------------------------------------*/
+
+
+static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res, size_t _clientID, char* _ip, int _port)
+{
+    PackedMessage msg;
+    size_t pckMsgSize;
+
+    msg = ProtocolPackGroupDetails(GROUP_CREATE_REC, _res, _ip, _port, &pckMsgSize);
+
+    ServerSend(_serverApp->m_serverNet,_clientID, msg, pckMsgSize);
+    ProtocolPackedMsgDestroy(msg);
+}
+
+static void SendAppResp( ServerApp* _serverApp, size_t _clientID, MSG_TYPE _type, MSG_RESPONSE _response)
+{
+    PackedMessage msg;
+    size_t pckMsgSize;
+
+    msg = ProtocolPackRespMsg(_type, _response, &pckMsgSize);
+    
+    ServerSend(_serverApp->m_serverNet,_clientID, msg, pckMsgSize);
+
+    ProtocolPackedMsgDestroy(msg);
 }
 
 static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
@@ -404,288 +701,6 @@ static void SendAppGroupList(ServerApp* _serverApp, size_t _clientID, Vector* _l
     ProtocolPackedMsgDestroy(pckMsg);
     
 }
-
-void ListVectorNameDestroy(void* _name)
-{
-    free(_name);
-}
-
-/* -------- Users -------- */
-
-static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
-{
-    USER_MNG_ERR addResult;
-    char userName[USER_NAME_LENGTH], userPass[USER_PASS_LENGTH];
-
-
-    if( ProtocolUnpackUserDetails(_msg, userName, userPass) != PROTOCOL_SUCCESS)
-    {
-        SendAppResp(_serverApp, _clientID, REG_REC, GEN_ERROR);
-        UIMsgRcvErr();
-        return;
-    }
-    
-    addResult = UserMngAdd(_serverApp->m_userMng, userName, userPass);
-
-    switch (addResult)
-    {
-    case USER_MNG_USER_EXISTS:
-        SendAppResp(_serverApp, _clientID, REG_REC, USER_EXISTS);
-        UIUserExistsRegErr(userName);
-        break;
-    case USER_MNG_USER_ADDED:
-        SendAppResp(_serverApp, _clientID, REG_REC, USER_CREATED);
-        UIUserCreated(userName);
-        break;
-    default:
-        SendAppResp(_serverApp, _clientID, REG_REC, GEN_ERROR);
-        break;
-    }
-    
-}
-
-static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
-{
-    USER_MNG_ERR loginRes;
-    char userName[USER_NAME_LENGTH], userPass[USER_PASS_LENGTH];
-
-    if( ProtocolUnpackUserDetails(_msg, userName, userPass) != PROTOCOL_SUCCESS)
-    {
-        SendAppResp(_serverApp, _clientID, LOGIN_REC, GEN_ERROR);
-        UIMsgRcvErr();
-        return MSG_READ_ERR;
-    }
-
-    loginRes = UserMngConnect(_serverApp->m_userMng, userName, userPass);
-
-    printf("login user: %s connected on %ld \n", userName,_clientID);   
-    switch (loginRes)
-    {
-    case USER_MNG_USER_NOT_FOUND:
-        SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_NOT_FOUND);
-        break;
-    
-    case USER_MNG_PASS_INCORRECT:
-        SendAppResp(_serverApp, _clientID, LOGIN_REC, PASS_INCORRECT);
-        break;
-
-    case USER_MNG_ALREADY_CONNECT:
-        SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_ALREADY_CONNECTED);
-        break;
-    case USER_MNG_SUCCESS:
-        AssignclientUsername(_serverApp, _clientID, userName);
-        SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_CONNECTED);
-        break;
-
-    default:
-        SendAppResp(_serverApp, _clientID, LOGIN_REC, GEN_ERROR);
-        break;
-    }
-}
-
-
-
-
-static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
-{
-    USER_MNG_ERR logoutRes;
-    char userName[USER_NAME_LENGTH];
-
-    if( ProtocolUnpackUserName(_msg, userName) != PROTOCOL_SUCCESS)
-    {
-        SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
-        UIMsgRcvErr();
-        return MSG_READ_ERR;
-    }
-
-    logoutRes = UserMngDisconnect(_serverApp->m_userMng, userName);
-
-    switch (logoutRes)
-    {
-    case USER_MNG_USER_NOT_FOUND:
-        SendAppResp(_serverApp, _clientID, LOGOUT_REC, USER_NOT_FOUND);
-        break;
-    
-    case USER_MNG_SUCCESS:
-        SendAppResp(_serverApp, _clientID, LOGOUT_REC, USER_DISCONNECTED);
-
-        break;
-
-    default:
-        SendAppResp(_serverApp, _clientID, LOGOUT_REC, GEN_ERROR);
-        break;
-    }
-}
-
-
-/* -------- GROUPS -------- */
-
-static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
-{
-    char userName[USER_NAME_LENGTH];
-
-    char groupName[GROUP_NAME_LENGTH];
-    char groupIP[IPV4_ADDRESS_SIZE];
-    int groupPort;
-
-    if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
-    {
-        SendAppResp(_serverApp, _clientID, GROUP_CREATE_REQ, GEN_ERROR);
-        UIMsgRcvErr();
-        return MSG_READ_ERR;
-    }
-
-    if( GetClientUsername(_serverApp, _clientID, userName) != SUCCESS )
-    {
-        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
-        return;
-    }
-
-    if( GroupMngAdd(_serverApp->m_groupMng, groupName, groupIP, &groupPort) != GROUP_MNG_SUCCESS)
-    {
-        SendAppResp(_serverApp, _clientID, GROUP_CREATE_REC, GROUP_CREATE_FAIL);
-        return;
-    }   
-    
-
-    if(UserMngGroupJoined(_serverApp->m_userMng, userName, groupName) != USER_MNG_SUCCESS)
-    {
-        GroupMngLeave(_serverApp->m_groupMng, groupName);
-        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
-        return ;
-    }
-
-    SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort);
-    UIGroupCreated(groupName, groupIP, groupPort);
-
-}
-
-static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
-{
-    USER_MNG_ERR userMngRes;
-
-    char userName[USER_NAME_LENGTH];
-
-    char groupName[GROUP_NAME_LENGTH];
-    char groupIP[IPV4_ADDRESS_SIZE];
-    int groupPort;
-
-    if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
-    {
-        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
-        UIMsgRcvErr();
-        return MSG_READ_ERR;
-    }
-
-    if( GetClientUsername(_serverApp, _clientID, userName) != SUCCESS )
-    {
-        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
-        return;
-    }
-
-    if(UserMngIsUserInGrp(_serverApp->m_userMng, userName, groupName) == USER_MNG_IN_GRP)
-    {
-        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GROUP_USER_CONNECTED);
-        return ;
-    }
-    
-    if (GroupMngJoin(_serverApp->m_groupMng, groupName, groupIP, &groupPort) != GROUP_MNG_SUCCESS)
-    {
-        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
-        return ;
-    }
-
-    if(UserMngGroupJoined(_serverApp->m_userMng, userName, groupName) != USER_MNG_SUCCESS)
-    {
-        GroupMngLeave(_serverApp->m_groupMng, groupName);
-        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
-        return ;
-    }
-
-    SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort);
-    UIGroupJoined(_clientID, groupName, groupIP, groupPort);
-
-}
-
-
-
-static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
-{
-    USER_MNG_ERR leaveRes;
-    char groupName[GROUP_NAME_LENGTH];
-
-    if( ProtocolUnpackGroupName(_msg, groupName) != PROTOCOL_SUCCESS)
-    {
-        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GEN_ERROR);
-        UIMsgRcvErr();
-        return MSG_READ_ERR;
-    }
-
-    leaveRes = GroupMngLeave(_serverApp->m_groupMng, groupName);
-
-    switch (leaveRes)
-    {
-    case GROUP_MNG_SUCCESS:
-        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GROUP_LEFT);
-        GroupMngLeave(_serverApp->m_groupMng, groupName); /* TODO: error? */
-        UIGroupLeft(_clientID, groupName);
-        break;
-
-    default:
-        SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GROUP_LEAVE_FAIL);
-        break;
-    }
-}   
-
-/*---------------------------------------- CloseClient() Helper Functions ----------------------------------------*/
-
-
-static APP_INTERN_ERR DisconnectClientGroups(ConnectedClient* _client, ServerApp* _serverApp)
-{
-    List* grpList;
-    ListItr currentItr;
-
-    if( UserMngGetUserGrps(_serverApp->m_userMng, _client->userName, &grpList) != USER_MNG_SUCCESS)
-    {
-        return CLIENT_GRP_LIST_REQ_FAIL;
-    }
-
-    currentItr = ListItrBegin(grpList);
-    while (currentItr != ListItrEnd(grpList))
-    {
-        GroupMngLeave(_serverApp->m_groupMng, (char*)ListItrGet(currentItr));
-    }
-
-    return SUCCESS;
-}
-
-/*---------------------------------------- Send Functions ----------------------------------------*/
-
-
-static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res, size_t _clientID, char* _ip, int _port)
-{
-    PackedMessage msg;
-    size_t pckMsgSize;
-
-    msg = ProtocolPackGroupDetails(GROUP_CREATE_REC, _res, _ip, _port, &pckMsgSize);
-
-    ServerSend(_serverApp->m_serverNet,_clientID, msg, pckMsgSize);
-    ProtocolPackedMsgDestroy(msg);
-}
-
-static void SendAppResp( ServerApp* _serverApp, size_t _clientID, MSG_TYPE _type, MSG_RESPONSE _response)
-{
-    PackedMessage msg;
-    size_t pckMsgSize;
-
-    msg = ProtocolPackRespMsg(_type, _response, &pckMsgSize);
-    
-    ServerSend(_serverApp->m_serverNet,_clientID, msg, pckMsgSize);
-
-    ProtocolPackedMsgDestroy(msg);
-}
-
-
 /*---------------------------------------- Hash Helper Functions ----------------------------------------*/
 
 size_t HashClientKey(void* _clientID)
@@ -749,7 +764,7 @@ static ConnectedClient* ConnClientCreate(ClientInfo _clientInfo)
     return newClient;
 }
 
-static void ConnClientDestroy(ConnectedClient** _client) /* TODO:  */
+static void ConnClientDestroy(ConnectedClient** _client)
 {
     if(_client == NULL || *_client == NULL)
     {
@@ -764,6 +779,13 @@ static void ConnClientDestroy(ConnectedClient** _client) /* TODO:  */
     free(*_client);
     *_client = NULL;
 }
+
+
+void ListVectorNameDestroy(void* _name)
+{
+    free(_name);
+}
+
 
 
 /*---------------------------------------- Client Helper Functions ----------------------------------------*/
