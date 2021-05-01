@@ -10,7 +10,7 @@
 #include <arpa/inet.h> /* inet_addr() */
 
 #include "clientNet.h"
-
+#include "clientUI.h"
 #include "list/DoubleLinkedListGeneric/DoubleLL/ADTErr.h"
 #include "list/DoubleLinkedListGeneric/DoubleLL/DoubleLL.h"
 #include "list/DoubleLinkedListGeneric/DoubleLLItr/DoubleLLItr.h"
@@ -115,6 +115,18 @@ clientNetErr recvMsg(int _client_socket, int _maxMsgSize, char *_msgFromServer, 
 	return CLIENT_NET_OK;
 }
 
+clientNetErr removegroupFromClientsList(Client *_client, char *_grpName)
+{
+	ListItr group;
+	group = ListItr_FindFirst(ListItrBegin(_client->m_connectedGroups),ListItrBegin(_client->m_connectedGroups), predicateGrpName, _grpName );
+	ListItrRemove(group);
+}
+char *getFirstGroupName(Client *_client)
+{
+	Group *gr;
+	gr = (Group*)ListItrGet(ListItrBegin(_client->m_connectedGroups));
+	return gr->m_grpName;
+}
 
 /* assist funcs */
 void initAddr(struct sockaddr_in *_serverAddr, char *_ip, int _port)
@@ -134,6 +146,17 @@ int destroyGroup(void *_element,void *_context)
 {
 	if (_element == NULL) { return 0; }
 	free( (Group*)_element );
+}
+
+void showAllClientsGroups(Client *_client)
+{
+	ListItr_ForEach(ListItrBegin(_client->m_connectedGroups), ListItrEnd(_client->m_connectedGroups), showGroupList, NULL);
+}
+
+int predicateGrpName(void *_elem, void *_context)
+{
+	if ( strcmp((char*)_elem, ((Group*)_context)->m_grpName ) == 0 ) { return 1; }
+	else {return 0;}
 }
 /* getters und setters*/
 int getClientSocket(Client *_client)
@@ -178,4 +201,8 @@ void setGroupName(Group *_gr, char *_grName)
 void setGroupAddr(Group *_gr, char *_grIp, int _grPort)
 {
 	initAddr(&(_gr->m_groupAddr), _grIp, _grPort);
+}
+int getClientNumOfGroups(Client *_client)
+{
+	return _client->m_numOfGroups;
 }

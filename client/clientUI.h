@@ -29,3 +29,4 @@ void ClientUIErr(MSG_RESPONSE _err);
 CLIENT_ACT ClientUIMenu2();
 
 CLIENT_ACT ClientUIGetGroupName(char* _groupName);
+int showGroupList(void* _element, void* _context);
