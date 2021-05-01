@@ -120,6 +120,7 @@ typedef enum MSG_RESPONSE{
 
 PackedMessage ProtocolPackLogoutReq(size_t *_pckMsgSize);
 
+
 PackedMessage ProtocolPackGroupListRequest(size_t *_pckMsgSize);
 
 

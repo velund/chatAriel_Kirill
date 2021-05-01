@@ -1,3 +1,6 @@
+#ifndef _GNU_SOURCE
+	#define _GNU_SOURCE
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -37,8 +40,8 @@ CHAT_OPENER_ERR closeChat(char *_grpName)
 {
 	int listennerPid, senderPid;
 	CHAT_OPENER_ERR check;
-	if ( (removePidFromFile(SENDER_PID_FNAME, _grpName, &listennerPid)) != CHAT_OPENER_SUCCESS){ return check; } 
-	if ( (removePidFromFile(SENDER_PID_FNAME, _grpName, &senderPid)) != CHAT_OPENER_SUCCESS){ return check; } 
+	if ( (check = removePidFromFile(SENDER_PID_FNAME, _grpName, &listennerPid)) != CHAT_OPENER_SUCCESS){ return check; } 
+	if ( (check = removePidFromFile(SENDER_PID_FNAME, _grpName, &senderPid)) != CHAT_OPENER_SUCCESS){ return check; } 
 
 	kill(listennerPid, SIGKILL);
 	kill(senderPid, SIGKILL);
@@ -69,7 +72,7 @@ CHAT_OPENER_ERR removePidFromFile(char *_fileName, char *_grpName, int *_pid)
 			{
 				fclose(fp);
 
-				size_t newSize = deleteLine(_buffer, st.st_size, _grpName, _pid);
+				newSize = deleteLine(_buffer, st.st_size, _grpName, _pid);
 
 				fp = fopen(_fileName, "wb");
 				if (fp != NULL)
@@ -107,8 +110,7 @@ static size_t deleteLine(char *_buffer, size_t _size, const char *_grpName, int 
 	size_t newSize = 0;
 	size_t restSize;
 	size_t lineSize = 0;
-	char *line, grpName;
-	int pid;
+	char *line;
 	do
 	{
 		q = strchr(p, *_grpName);
@@ -119,7 +121,7 @@ static size_t deleteLine(char *_buffer, size_t _size, const char *_grpName, int 
 				sscanf(q + len, "%d", _pid);
 				lineSize = 1; /* include '\n' in line size */
 				/* count number of chars in line */
-				for (char *line = q; *line != '\n'; ++line)
+				for (line = q; *line != '\n'; ++line)
 				{
 					++lineSize;
 				}
