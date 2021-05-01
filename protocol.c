@@ -271,6 +271,8 @@ PROTOCOL_ERR ProtocolUnpackUserName(PackedMessage _packedMsg, char* _userName)
 
     return PROTOCOL_SUCCESS;
 }
+
+
 /* ---- Group functions ---- */
 
 PackedMessage ProtocolPackGroupListRequest(size_t *_pckMsgSize)
@@ -327,7 +329,7 @@ PackedMessage ProtocolPackGroupList( Vector* _groupList, size_t *_pckMsgSize)
         free(groupName);
     }
 
-    msgSize = (Byte)(i - 1);
+    msgSize = (Byte)(i);
     packedMsg[MSG_LEN_B] = (Byte)msgSize;
     packedMsg[MSG_NUM_OF_GROUPS_B] = (Byte)groupNum;
 
