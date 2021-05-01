@@ -33,6 +33,7 @@ typedef enum
     CLIENT_APP_UNPACKING_GRP_VECT_FAILED,
     /* logout */
     LOGOUT_FAILURE,
+    GROUP_LEAVE_MSG_RESP_FAILURE
     
     
 }CLIENT_APP_ERR; 

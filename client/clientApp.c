@@ -76,7 +76,6 @@ CLIENT_APP_ERR LogOutClient(Client *_client, char* _userName)
 	if ( (check =recvLogoutReq(_client)) !=CLIENT_APP_OK ) { return check; } 
 	closeAllChats(_client);
 	destroAllClientsGroups(_client);
-	destroyClientConnection(&_client);
 	return CLIENT_APP_OK;
 }
 
@@ -151,9 +150,8 @@ CLIENT_APP_ERR leaveGroup(Client *_client, char *_grpName)
 	{ 
 		return RECVING_FAIL;
 	} 
-	unpckdMsg = ProtocolUnpackRespMsg(recieveBuffer); 
-	if ( (treatServerResponse(unpckdMsg)) != GOOD ) { return CLIENT_APP_LOGIN_OR_REG_FALURE;}
-	
+	if ( ProtocolGetMsgResponse(recieveBuffer) != GROUP_LEFT ) { return GROUP_LEAVE_MSG_RESP_FAILURE; }
+		
 	return CLIENT_APP_OK;
 }
 
@@ -315,7 +313,7 @@ CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port)
 	{ 
 		return RECVING_FAIL;
 	} 
-	if ( ProtocolGetMsgResponse(recieveBuffer) != GROUP_CREATED ) { return GROUP_CREATE_MSG_RESP_FAILURE; }
+	if ( ProtocolGetMsgResponse(recieveBuffer) != GROUP_LEFT ) { return GROUP_CREATE_MSG_RESP_FAILURE; }
 	ProtocolUnpackGroupDetails(recieveBuffer,_ip, _port);
 	return CLIENT_APP_OK;
 }
