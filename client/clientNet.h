@@ -6,7 +6,7 @@
 #include "../list_itr.h"
 #include "../list_functions.h"
 
-#define SERVER_IP "192.168.1.109"
+#define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 8080 
 
 typedef struct Client Client;

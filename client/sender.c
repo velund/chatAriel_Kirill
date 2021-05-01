@@ -1,3 +1,6 @@
+#ifndef _GNU_SOURCE
+	#define _GNU_SOURCE
+#endif
 #include <sys/socket.h> /* socket() */
 #include <netinet/in.h> /* struct sockaddr_in */
 #include <arpa/inet.h> /* inet_ntoa() */
@@ -101,7 +104,7 @@ static void savePid(char *_grpName)
     FILE* savePIDTo;
     char cPID[10];
     pid_t myPID;
-
+    
     myPID = getpid();
     savePIDTo = fopen(SENDER_PID_FNAME, "a");
     

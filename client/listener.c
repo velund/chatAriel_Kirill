@@ -1,10 +1,13 @@
-
+#ifndef _GNU_SOURCE
+	#define _GNU_SOURCE
+#endif
 #include <sys/socket.h> /* socket() */
 #include <netinet/in.h> /* struct sockaddr_in */
 #include <arpa/inet.h> /* inet_ntoa() */
 #include <stdio.h> /* scanf(), perror() */
 #include <stdlib.h> /* exit() */
 #include <string.h> /* memset() */
+#include <unistd.h>/* getpid */
 #include "chatDefs.h"
 #include <unistd.h> /* getpid() */
 
