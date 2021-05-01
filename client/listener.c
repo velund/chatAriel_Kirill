@@ -5,8 +5,7 @@
 #include <stdio.h> /* scanf(), perror() */
 #include <stdlib.h> /* exit() */
 #include <string.h> /* memset() */
-
-#define BUFFER_SIZE 100
+#include "chatDefs.h"
 
 /* HELPER */
 static int SetSockReusable(int _sock);
@@ -15,7 +14,8 @@ static struct sockaddr_in InitComm(int _sock, int _port, char* _groupAddr);
 static int InitMulticast(int _sock, char* _addr);
 
 int ListenerRun(int _socket, struct sockaddr_in _addr, char* _groupName);
-
+static void savePid(char *_grpName);
+/* end HELPER */
 
 /* MAIN */
 
@@ -25,7 +25,9 @@ int main(int argc, char *argv[])
     char* groupAddr;
     char* groupName;
     struct sockaddr_in addr;
-
+    /*pid*/
+    savePid(argv[3]);
+    /*endpid*/
     if (argc != 4) 
     {
        perror("Args fail");
@@ -127,4 +129,18 @@ int ListenerRun(int _socket, struct sockaddr_in _addr, char* _groupName)
         buffer[readBytes] = '\0';
         printf("%s", buffer);
     }
+}
+
+static void savePid(char *_grpName)
+{
+    FILE* savePIDTo;
+    char cPID[10];
+    pid_t myPID;
+
+    myPID = getpid();
+    savePIDTo = fopen(LISTENER_PID_FNAME, "a");
+    
+    fprintf(savePIDTo, "%s %d\n",_grpName, myPID);
+    fclose(savePIDTo);
+
 }

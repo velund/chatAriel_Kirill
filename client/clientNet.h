@@ -2,7 +2,7 @@
 #define __CLIENTNET_H__
 
 #include <stdlib.h> /*  size_t */
-
+#include "list.h"
 
 #define SERVER_IP "192.168.1.109"
 #define SERVER_PORT 8080 
@@ -28,11 +28,17 @@ Client *connectClient();
 void disconnect(Client **_client);
 clientNetErr sendMsg(int _client_socket, char *_messageFromClient, size_t _msgLen);
 clientNetErr recvMsg(int _client_socket, int _maxMsgSize, char *_msgFromServer, int *_bytesRecieved);
-clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port);
+clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port, Group **_group);
+clientNetErr removegroupFromClientsList(Client *_client, char *_grpName);
 /* getter */
 int getClientSocket(Client *_client );
 void setCLientName(Client *_client, char *_name);
 void setGroupName(Group *_gr, char *_grName);
 void setGroupAddr(Group *_gr, char *_grIp, int _grPort);
+List *getClientsConnectedGroups(Client *_client);
 char *getClientName(Client *_client);
+int getGroupChatId(Group *_group);
+void setGroupChatId(Group *_group, int _id);
+int getClientNumOfGroups(Client *_client);
+char *getFirstGroupName(Client *_client);
 #endif /* __CLIENTNET_H__ */

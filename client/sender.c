@@ -4,15 +4,14 @@
 #include <stdio.h> /* scanf(), perror() */
 #include <stdlib.h> /* exit() */
 #include <string.h> /* memset() */
-
-#define BUFFER_SIZE 100
+#include "chatDefs.h"
 
 /* HELPER */
 static int GetSock();
 static struct sockaddr_in InitComm(int _sock, int _port, char* _group);
-
 void SenderRun(int _socket, struct sockaddr_in _addr, char* _userName, char* _groupName);
-
+static void savePid(char *_grpName);
+/* end HELPER */
 
 /* MAIN */
 
@@ -21,7 +20,9 @@ int main(int argc, char *argv[])
     int sock, port;
     char* groupAddr, *userName, *groupName;
     struct sockaddr_in addr;
-
+    /*pid*/
+    savePid(argv[4]);
+    /*endpid*/
     if (argc != 5) 
     {
        perror("Args fail");
@@ -37,8 +38,6 @@ int main(int argc, char *argv[])
     addr = InitComm(sock, port, groupAddr);
 
     SenderRun(sock, addr, userName, groupName);
-    
-
     return 0;
 }
 
@@ -70,7 +69,6 @@ static struct sockaddr_in InitComm(int _sock, int _port, char* _group)
 }
 
 
-
 void SenderRun(int _socket, struct sockaddr_in _addr, char* _userName, char* _groupName)
 {
     int sentBytes;
@@ -96,4 +94,17 @@ void SenderRun(int _socket, struct sockaddr_in _addr, char* _userName, char* _gr
         }
         system("clear");
     }
+}
+static void savePid(char *_grpName)
+{
+    FILE* savePIDTo;
+    char cPID[10];
+    pid_t myPID;
+
+    myPID = getpid();
+    savePIDTo = fopen(SENDER_PID_FNAME, "a");
+    
+    fprintf(savePIDTo, "%s %d\n",_grpName, myPID);
+    fclose(savePIDTo);
+
 }
