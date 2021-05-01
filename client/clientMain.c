@@ -5,7 +5,7 @@
 
 int main(void)
 {
-    Client* myClient;
+    /*Client* myClient;
 
     myClient = createClientConnection();
     if(myClient == NULL)
@@ -14,9 +14,9 @@ int main(void)
     }
     registerClient(myClient, "Kirill", "1234565"); /* 2+ 1+ 6 + 1 + 5 = 15*/
 
-    LoginClient(myClient, "Kirill", "1234565");
+   /* LoginClient(myClient, "Kirill", "1234565");
 
-    createGroup(myClient, "myGroup");
+    createGroup(myClient, "myGroup");*/
 
     return 0;
 }

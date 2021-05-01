@@ -36,7 +36,7 @@ CLIENT_ACT ClientUIStartMenu()
         
     }
     putchar('\n');
-    
+    return ACT_SUCCESS;
 }
 
 CLIENT_ACT ClientUIGetUserDetails(char* _userName, char* _passWord)
@@ -131,6 +131,7 @@ CLIENT_ACT ClientUIMenu2()
             break;
         }
     }
+  return ACT_SUCCESS;  
 }
 
 CLIENT_ACT ClientUIGetGroupName(char* _groupName)

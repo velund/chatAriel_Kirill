@@ -21,7 +21,8 @@ typedef enum clientNetErr
 	INCORRECT_ARGS_OF_ADD_GROUP,
 	GROUP_MALLOC_FAILED,
 
-	GROUP_NOT_CREATED
+	GROUP_NOT_CREATED,
+	NO_GROUPS_CONNECTED
 } clientNetErr;
 
 Client *connectClient();
@@ -30,6 +31,8 @@ clientNetErr sendMsg(int _client_socket, char *_messageFromClient, size_t _msgLe
 clientNetErr recvMsg(int _client_socket, int _maxMsgSize, char *_msgFromServer, int *_bytesRecieved);
 clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port, Group **_group);
 clientNetErr removegroupFromClientsList(Client *_client, char *_grpName);
+void showAllClientsGroups(Client *_client);
+void destroyListOfGroups(List *_grps);
 /* getter */
 int getClientSocket(Client *_client );
 void setCLientName(Client *_client, char *_name);

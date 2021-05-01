@@ -30,7 +30,7 @@ TREATED treatServerResponse(MSG_RESPONSE _unpckdMsg);
 CLIENT_APP_ERR loginRegister(MSG_TYPE _msgtypeToSend, Client *_client, char* _userName, char* _userPass);
 CLIENT_APP_ERR checkStartTalkParams(Client *_client, char* _userName, char* _userPass);
 CLIENT_APP_ERR groupsRequest(Client *_client, MSG_TYPE _msgtypeToSend, MSG_TYPE _msgtypeToRecv, char *_grpName, MSG_RESPONSE *_unpckdMsg);
-CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port);
+CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port, MSG_RESPONSE _expected);
 CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_grpName);
 CLIENT_APP_ERR checkGroupsParams(Client *_client, char *_grpName);
 CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpIp, int _grpPort, Group **_group );
@@ -38,8 +38,12 @@ CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpI
 CLIENT_APP_ERR sendGroupsVectrorReq(Client *_client);
 CLIENT_APP_ERR recieveGroupsVector(Client *_client, Vector *_vector);
 CLIENT_APP_ERR closeTheChat(Client *_client, char *_grpName);
+CLIENT_APP_ERR closeAllChats(Client *_client);
 
-void showAllGroups(_client);
+CLIENT_APP_ERR recvLogoutReq(Client *_client);
+CLIENT_APP_ERR sendLogoutReq(Client *_client);
+void showAllGroups(Client *_client);
+void destroyAllClientsGroups(Client *_client);
 /* end assist funcs declarations*/
 
 Client *createClientConnection()
@@ -70,21 +74,18 @@ CLIENT_APP_ERR LoginClient(Client *_client, char* _userName, char* _userPass)
 CLIENT_APP_ERR LogOutClient(Client *_client, char* _userName)
 {
 	CLIENT_APP_ERR check;
-	int bytesRecieved;
 	if ( (check =  checkStartTalkParams(_client, _userName,  _userName )) != CLIENT_APP_OK ) { return check; }
 	if ( (check =sendLogoutReq(_client)) !=CLIENT_APP_OK) { return check; } 
 	if ( (check =recvLogoutReq(_client)) !=CLIENT_APP_OK ) { return check; } 
 	closeAllChats(_client);
-	destroAllClientsGroups(_client);
+	destroyAllClientsGroups(_client);
 	return CLIENT_APP_OK;
 }
 
 CLIENT_APP_ERR createGroup(Client *_client, char *_grpName)
 {
-	MSG_RESPONSE unpckdMsg;
 	char grpIp[IPV4_ADDR_LEN];
 	int grpPort;
-	size_t msgSize;
 	CLIENT_APP_ERR check;
 	Group *group;
 	if ( ( check = checkGroupsParams(_client, _grpName) ) != CLIENT_APP_OK )
@@ -92,7 +93,7 @@ CLIENT_APP_ERR createGroup(Client *_client, char *_grpName)
 		return check;
 	}
 	if ( (check = sendMessageGroupReq(_client, GROUP_CREATE_REQ, _grpName)) !=  CLIENT_APP_OK) { return check; }
-	if ( (check = recieveMsgGroupReq(_client, grpIp, &grpPort)) != CLIENT_APP_OK ) { return check; }
+	if ( (check = recieveMsgGroupReq(_client, grpIp, &grpPort, GROUP_CREATED)) != CLIENT_APP_OK ) { return check; }
 	if ( (addGroupToClientNet(_client, _grpName, grpIp, grpPort, &group)) !=  CLIENT_APP_OK) 
 	{ return GROUP_ADDING_TO_CLIENT_NET_FAILURE; }
 
@@ -121,10 +122,10 @@ CLIENT_APP_ERR joinGroup(Client *_client, char *_grpName)
 	CLIENT_APP_ERR check;
 	char grpIp[IPV4_ADDR_LEN];
 	int grpPort;
-	size_t msgSize;
+	
 	Group *group;
 	if ( (check = sendMessageGroupReq(_client, GROUP_JOIN_REQ, _grpName)) != CLIENT_APP_OK) { return check; }
-	if ( (check = recieveMsgGroupReq(_client, grpIp, &grpPort)) != CLIENT_APP_OK) { return check; }
+	if ( (check = recieveMsgGroupReq(_client, grpIp, &grpPort, GROUP_JOINED)) != CLIENT_APP_OK) { return check; }
 	
 	if ( (addGroupToClientNet(_client, _grpName, grpIp, grpPort, &group)) !=  CLIENT_APP_OK) 
 	{ return GROUP_ADDING_TO_CLIENT_NET_FAILURE; }
@@ -138,8 +139,6 @@ CLIENT_APP_ERR joinGroup(Client *_client, char *_grpName)
 } /*packJoinGroup, send(TCP), recv, unpack if ok call connectToGroup ((clientNet))*/ 
 CLIENT_APP_ERR leaveGroup(Client *_client, char *_grpName)
 {
-	MSG_RESPONSE unpckdMsg;
-	CLIENT_APP_ERR check;
 	char recieveBuffer[RECIEVE_BUFFER_SIZE];
 	int bytesRecieved;
 	showAllGroups(_client);
@@ -263,7 +262,7 @@ CLIENT_APP_ERR groupsRequest(Client *_client, MSG_TYPE _msgtypeToSend, MSG_TYPE 
 
 CLIENT_APP_ERR  addGroupToClientNet(Client *_client, char *_grpName, char *_grpIp, int _grpPort, Group **_group )
 {
-	PROTOCOL_ERR check;
+	
 	if ( (addGroup(_client, _grpName, _grpIp, _grpPort, _group)) != CLIENT_NET_OK )
 	{
 		return GROUP_CREATION_FAILURE;
@@ -305,7 +304,7 @@ CLIENT_APP_ERR sendMessageGroupReq(Client *_client, MSG_TYPE _msgType,  char *_g
 	return CLIENT_APP_OK;
 }
 
-CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port)
+CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port, MSG_RESPONSE _expected)
 {
 	char recieveBuffer[MAX_MSG_GROUP_REQ_SIZE];
 	int bytesRecieved;
@@ -313,11 +312,10 @@ CLIENT_APP_ERR recieveMsgGroupReq(Client *_client, char *_ip, int *_port)
 	{ 
 		return RECVING_FAIL;
 	} 
-	if ( ProtocolGetMsgResponse(recieveBuffer) != GROUP_LEFT ) { return GROUP_CREATE_MSG_RESP_FAILURE; }
+	if ( ProtocolGetMsgResponse(recieveBuffer) != _expected ) { return GROUP_CREATE_MSG_RESP_FAILURE; }
 	ProtocolUnpackGroupDetails(recieveBuffer,_ip, _port);
 	return CLIENT_APP_OK;
 }
-
 
 CLIENT_APP_ERR sendGroupsVectrorReq(Client *_client)
 {
@@ -345,7 +343,7 @@ CLIENT_APP_ERR recieveGroupsVector(Client *_client, Vector *_vector)
 	
 }
 
-void destroAllClientsGroups(Client *_client)
+void destroyAllClientsGroups(Client *_client)
 {
 	destroyListOfGroups(getClientsConnectedGroups(_client));	
 }
@@ -354,6 +352,7 @@ CLIENT_APP_ERR closeTheChat(Client *_client, char *_grpName)
 {
 	if ( (closeChat(_grpName)) != CHAT_OPENER_SUCCESS ) { return CLOSE_CHAT_FAILURE; }
 	removegroupFromClientsList(_client, _grpName);
+	return CLIENT_APP_OK;
 }
 CLIENT_APP_ERR closeAllChats(Client *_client)
 {
@@ -364,6 +363,7 @@ CLIENT_APP_ERR closeAllChats(Client *_client)
 		grpName = getFirstGroupName(_client);
 		closeTheChat(_client, grpName);
 	}
+	return CLIENT_APP_OK;
 }
 
 void showAllGroups(Client *_client)

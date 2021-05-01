@@ -41,6 +41,7 @@ struct Group
 /* assist funcs */
 void initAddr(struct sockaddr_in *_serverAddr, char *_ip, int _port);
 int destroyGroup(void *_element,void *_context);
+int predicateGrpName(void *_elem, void *_context);
 /* end assist funcs */
 
 clientNetErr addGroup(Client *_client, char *_grpName, char *_ip, int _port, Group **_group)
@@ -119,7 +120,9 @@ clientNetErr removegroupFromClientsList(Client *_client, char *_grpName)
 {
 	ListItr group;
 	group = ListItr_FindFirst(ListItrBegin(_client->m_connectedGroups),ListItrBegin(_client->m_connectedGroups), predicateGrpName, _grpName );
+	if ( group == ListItrEnd(_client->m_connectedGroups) ) { return NO_GROUPS_CONNECTED; }
 	ListItrRemove(group);
+	return CLIENT_NET_OK;
 }
 char *getFirstGroupName(Client *_client)
 {
@@ -146,6 +149,7 @@ int destroyGroup(void *_element,void *_context)
 {
 	if (_element == NULL) { return 0; }
 	free( (Group*)_element );
+	return 1;
 }
 
 void showAllClientsGroups(Client *_client)
@@ -188,11 +192,6 @@ void setGroupChatId(Group *_group, int _id)
 {
 	_group->m_chatId = _id;
 }
-
-int getClientNumOfGroups(Client *_client)
-{
-	return _client->m_numOfGroups;
-} 
 
 void setGroupName(Group *_gr, char *_grName)
 {
