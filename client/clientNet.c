@@ -11,10 +11,9 @@
 
 #include "clientNet.h"
 #include "clientUI.h"
-#include "list/DoubleLinkedListGeneric/DoubleLL/ADTErr.h"
-#include "list/DoubleLinkedListGeneric/DoubleLL/DoubleLL.h"
-#include "list/DoubleLinkedListGeneric/DoubleLLItr/DoubleLLItr.h"
-#include "list/DoubleLinkedListGeneric/DoubleLLItr/DoubleLLItr2.h"
+#include "../list.h"
+#include "../list_itr.h"
+#include "../list_functions.h"
 
 #include "list.h"
 
@@ -119,7 +118,7 @@ clientNetErr recvMsg(int _client_socket, int _maxMsgSize, char *_msgFromServer, 
 clientNetErr removegroupFromClientsList(Client *_client, char *_grpName)
 {
 	ListItr group;
-	group = ListItr_FindFirst(ListItrBegin(_client->m_connectedGroups),ListItrBegin(_client->m_connectedGroups), predicateGrpName, _grpName );
+	group = ListItrFindFirst(ListItrBegin(_client->m_connectedGroups),ListItrBegin(_client->m_connectedGroups), predicateGrpName, _grpName );
 	if ( group == ListItrEnd(_client->m_connectedGroups) ) { return NO_GROUPS_CONNECTED; }
 	ListItrRemove(group);
 	return CLIENT_NET_OK;
@@ -142,7 +141,7 @@ void initAddr(struct sockaddr_in *_serverAddr, char *_ip, int _port)
 
 void destroyListOfGroups(List *_grps)
 {
-	ListItr_ForEach(ListItrBegin(_grps), ListItrEnd(_grps),destroyGroup, NULL);
+	ListItrForEach(ListItrBegin(_grps), ListItrEnd(_grps),destroyGroup, NULL);
 }
 
 int destroyGroup(void *_element,void *_context)
@@ -154,7 +153,7 @@ int destroyGroup(void *_element,void *_context)
 
 void showAllClientsGroups(Client *_client)
 {
-	ListItr_ForEach(ListItrBegin(_client->m_connectedGroups), ListItrEnd(_client->m_connectedGroups), showGroupList, NULL);
+	ListItrForEach(ListItrBegin(_client->m_connectedGroups), ListItrEnd(_client->m_connectedGroups), showGroupList, NULL);
 }
 
 int predicateGrpName(void *_elem, void *_context)

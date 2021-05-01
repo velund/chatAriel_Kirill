@@ -2,7 +2,9 @@
 #define __CLIENTNET_H__
 
 #include <stdlib.h> /*  size_t */
-#include "list.h"
+#include "../list.h"
+#include "../list_itr.h"
+#include "../list_functions.h"
 
 #define SERVER_IP "192.168.1.109"
 #define SERVER_PORT 8080 
