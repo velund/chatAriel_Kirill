@@ -47,7 +47,7 @@ typedef enum SRVR_RUN_ACT{
 #define IPV4_ADDRESS_SIZE 20
 
 typedef struct ClientInfo{
-    int m_clientID;
+    size_t m_clientID;
     int m_clientPort;
     char m_ipv4Address[IPV4_ADDRESS_SIZE];
 } ClientInfo;
@@ -74,14 +74,14 @@ typedef void (*NewClient)(TCPServer* _server, ClientInfo _newClientInfo, void* _
  * Description: Action function provided to server initiated every time a client sends a message to the server.
  * Inputs: Server pointer, client ID, message buffer and size of the message in bytes.
 */
-typedef void (*GotMessage)(TCPServer* _server, int _clientID, char* _msg, size_t _msgSize, void* _context);
+typedef void (*GotMessage)(TCPServer* _server, size_t _clientID, char* _msg, size_t _msgSize, void* _context);
 
 
 /*
  * Description: Action function provided to server initiated every time a client closes it's connection to the server.
  * Inputs: Server pointer, client ID.
 */
-typedef void (*CloseClient)(TCPServer* _server, int _clientID, void* _context);
+typedef void (*CloseClient)(TCPServer* _server, size_t _clientID, void* _context);
 
 /*
  * Description: Action function provided to server initiated every time a fail is taking place.
@@ -138,7 +138,7 @@ TCP_ERROR ServerRun(TCPServer* _server);
  * Outputs: TCP_SUCCESS on success.
  * Errors: TCP_SEND_FAIL if failed, will initate the app fail function.
 */
-TCP_ERROR ServerSend(TCPServer* _server, int _clientID, char* _buffer, size_t _msgSize);
+TCP_ERROR ServerSend(TCPServer* _server, size_t _clientID, char* _buffer, size_t _msgSize);
 
 /*
  * Description: Close a given client connection
@@ -146,6 +146,6 @@ TCP_ERROR ServerSend(TCPServer* _server, int _clientID, char* _buffer, size_t _m
  * Outputs: TCP_SUCCESS on success.
  * Errors: TCP_CLOSE_FAIL if failed.
 */
-TCP_ERROR ServerClientClose(TCPServer* _server, int _clientID);
+TCP_ERROR ServerClientClose(TCPServer* _server, size_t _clientID);
 
 #endif /* __SERVER_H__ */

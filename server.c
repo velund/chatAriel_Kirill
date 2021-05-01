@@ -65,7 +65,7 @@ static void ClientListDestroy(void *_clientSocket);
 
 static int PrepServer(TCPServer* _tcpServer);
 static SRVR_RUN_ACT CheckForNewClient(TCPServer* _tcpServer);
-static SRVR_RUN_ACT AddNewClient(TCPServer* _tcpServer, int _clientSocket, struct sockaddr_in _clientAddr);
+static SRVR_RUN_ACT AddNewClient(TCPServer* _tcpServer, size_t _clientSocket, struct sockaddr_in _clientAddr);
 static SRVR_RUN_ACT HandleClients(TCPServer* _tcpServer);
 static void RemoveClient(TCPServer* _tcpServer, ListItr _clientItr);
 
@@ -161,11 +161,11 @@ TCP_ERROR ServerRun(TCPServer* _server)
     return TCP_SERVER_STOPPED;
 }
 
-TCP_ERROR ServerSend(TCPServer* _server, int _clientID, char* _buffer, size_t _msgSize)
+TCP_ERROR ServerSend(TCPServer* _server, size_t _clientID, char* _buffer, size_t _msgSize)
 {
     size_t sentBytes;
     sentBytes = send(_clientID, _buffer, _msgSize , 0);
-    printf("----in server net sent %d---\n", sentBytes);
+    printf("----in server net sent %ld---\n", sentBytes);
     if ( sentBytes < 0)
     {
         _server->m_appFunc.m_failFunc(TCP_SEND_FAIL, _server->m_appFunc.m_failContext);
@@ -174,7 +174,7 @@ TCP_ERROR ServerSend(TCPServer* _server, int _clientID, char* _buffer, size_t _m
     return TCP_SUCCESS;
 }
 
-TCP_ERROR ServerClientClose(TCPServer* _server, int _clientID)
+TCP_ERROR ServerClientClose(TCPServer* _server, size_t _clientID)
 {
     if(_server == NULL)
     {
@@ -270,7 +270,7 @@ static int InitServerAppFunc(TCPServer* _newServer, AppFunctions _appFunc) /* re
 
 static void ClientListDestroy(void *_clientSocket)
 {
-    close(*(int*)_clientSocket);
+    close(*(size_t*)_clientSocket);
     free(_clientSocket);
 }
 
@@ -299,7 +299,7 @@ static SRVR_RUN_ACT CheckForNewClient(TCPServer* _tcpServer)
 {
     struct sockaddr_in clientAddr;
     socklen_t clientAddLen = sizeof(clientAddr);
-    int clientSocket;
+    size_t clientSocket;
     
     if(FD_ISSET(_tcpServer->m_listenSock, &_tcpServer->m_readySockets) == 0) /* No Clients waiting in queue */
     {
@@ -319,9 +319,9 @@ static SRVR_RUN_ACT CheckForNewClient(TCPServer* _tcpServer)
     }
 }
 
-static SRVR_RUN_ACT AddNewClient(TCPServer* _tcpServer, int _clientSocket, struct sockaddr_in _clientAddr)
+static SRVR_RUN_ACT AddNewClient(TCPServer* _tcpServer, size_t _clientSocket, struct sockaddr_in _clientAddr)
 {
-    int* newClient;
+    size_t* newClient;
     ClientInfo newClientInfo;
     
     if(_tcpServer->m_numOfClients >= _tcpServer->m_maxNumOfClients) 
@@ -330,7 +330,7 @@ static SRVR_RUN_ACT AddNewClient(TCPServer* _tcpServer, int _clientSocket, struc
         return _tcpServer->m_appFunc.m_failFunc( TCP_SERVER_FULL, _tcpServer->m_appFunc.m_failContext);
     }
 
-    newClient = malloc(sizeof(int));
+    newClient = malloc(sizeof(size_t));
     if(newClient == NULL)
     {
         close(_clientSocket);
@@ -362,7 +362,7 @@ static SRVR_RUN_ACT AddNewClient(TCPServer* _tcpServer, int _clientSocket, struc
 
 static SRVR_RUN_ACT HandleClients(TCPServer* _tcpServer)
 {
-    int currentClientSock;
+    size_t currentClientSock;
     int readBytes;
     
     ListItr currentItr, endItr, removeClientItr;
@@ -377,7 +377,7 @@ static SRVR_RUN_ACT HandleClients(TCPServer* _tcpServer)
 
     while(currentItr != endItr)
     {
-        currentClientSock = *(int*)ListItrGet(currentItr);
+        currentClientSock = *(size_t*)ListItrGet(currentItr);
         if(FD_ISSET(currentClientSock, &_tcpServer->m_readySockets) == 0) /* skip */
         {
             currentItr = ListItrNext(currentItr);
@@ -413,10 +413,10 @@ static SRVR_RUN_ACT HandleClients(TCPServer* _tcpServer)
 static void RemoveClient(TCPServer* _tcpServer, ListItr _clientItr)
 {
     void* clientSocketPtr;
-    int socket;
+    size_t socket;
 
     clientSocketPtr = (ListItrRemove(_clientItr));
-    socket = *(int*)clientSocketPtr;
+    socket = *(size_t*)clientSocketPtr;
 
     close(socket);
     free(clientSocketPtr);

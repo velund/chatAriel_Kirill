@@ -99,6 +99,7 @@ typedef enum MSG_RESPONSE{
      /* group join */
     GROUP_JOINED,
     GROUP_JOIN_FAIL,
+    GROUP_USER_CONNECTED,
 
      /* group leave */
     GROUP_LEFT,

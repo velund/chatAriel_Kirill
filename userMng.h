@@ -3,6 +3,11 @@
 * Date: 25/4/21
 *****************************************************************************/
 
+/*------------------------------- Header Guard ------------------------------*/
+
+#ifndef __USERMNG_H__
+#define __USERMNG_H__
+
 /*****************************************************************************
 * Description:
 * User manager
@@ -39,6 +44,8 @@ typedef enum USER_MNG_ERR{
 
     USER_MNG_GRP_JOIN_FAIL,
     USER_MNG_GRP_LEAVE_FAIL,
+    USER_MNG_IN_GRP,
+    USER_MNG_NOT_IN_GRP,
 
     USER_MNG_FAIL
 } USER_MNG_ERR ;
@@ -97,7 +104,7 @@ USER_MNG_ERR UserMngDisconnect(UserMng* _userMng, char* _name);
 /*
  * Description: Declare given user as connected to given group
  * Inputs: User manager pointer, user's name, and group name
- * Outputs: USER_MNG_SUCCESS
+ * Outputs: USER_MNG_SUCCESS, USER_MNG_IN_GRP - if user already in grp
  * Errors: USER_MNG_NOT_INITALIZED, USER_MNG_USER_NOT_FOUND, USER_MNG_GRP_JOIN_FAIL
 */
 USER_MNG_ERR UserMngGroupJoined(UserMng* _userMng, char* _userName, char* _grpName);
@@ -110,10 +117,21 @@ USER_MNG_ERR UserMngGroupJoined(UserMng* _userMng, char* _userName, char* _grpNa
 */
 USER_MNG_ERR UserMngGroupLeft(UserMng* _userMng, char* _userName, char* _grpName);
 
+/* 
+ * Description: Check if given user connected to given group.
+ * Inputs: User manager pointer, user's name, and group name
+ * Outputs: USER_MNG_NOT_IN_GRP, USER_MNG_IN_GRP
+ * Errors: USER_MNG_NOT_INITALIZED, USER_MNG_USER_NOT_FOUND, USER_MNG_GRP_LEAVE_FAIL
+*/
+USER_MNG_ERR UserMngIsUserInGrp(UserMng* _userMng, char* _userName, char* _grpName);
+
 /* TODO: should copy or be given?
- * Description: Get the list of groups the client currently connected to
+ * Description: Get the list of groups names the client currently connected to
  * Inputs: User manager pointer, user's name, pointer to save the list pointer to.
  * Outputs: USER_MNG_SUCCESS
  * Errors: USER_MNG_NOT_INITALIZED, USER_MNG_USER_NOT_FOUND, USER_MNG_FAIL - if failed extracting the list from given user
 */
 USER_MNG_ERR UserMngGetUserGrps(UserMng* _userMng, char* _userName, List** _grpList);
+
+
+#endif /* __USERMNG_H__ */

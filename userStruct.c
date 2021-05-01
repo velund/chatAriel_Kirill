@@ -14,6 +14,9 @@
 #define USER_ACTIVE 1
 #define USER_INACTIVE 0
 
+#define IN_GRP 1
+#define NOT_IN_GRP 0
+
 struct User {
     char m_name[USER_NAME_SIZE];
     char m_pass[PASSWORD_SIZE];
@@ -24,6 +27,9 @@ struct User {
 /* ------------------- Helper Functions Prototypes ------------------- */
 
 static void GrpListDestroy(void *_grpName);
+
+static ListItr FindUsersGrpItr(User* _user, char* _grpName);
+static int IsConnectedToGrp(User* _user, char* _grpName);
 
 /* ------------------------- Main Functions ------------------------- */
 
@@ -42,15 +48,11 @@ User* UserCreate(char* _name, char* _pass)
         return NULL;
     }
 
-    newUser->m_groups = ListCreate();
-    if(newUser->m_groups == NULL)
-    {
-        free(newUser);
-        return NULL;
-    }
+    newUser->m_groups = NULL; /* initalized on connection */
 
     strcpy(newUser->m_name, _name);
     strcpy(newUser->m_pass, _pass);
+
     newUser->m_isActive = USER_INACTIVE;
     
     return newUser;
@@ -62,7 +64,10 @@ void UserDestroy(User** _user)
     {
         return;
     }
-    ListDestroy(&(*_user)->m_groups, GrpListDestroy);
+    if((*_user)->m_groups != NULL)
+    {
+        ListDestroy(&(*_user)->m_groups, GrpListDestroy);
+    }
     free(*_user);
     *_user = NULL;
 }
@@ -94,7 +99,7 @@ USER_ERR UserPassCheck(char* _pass, User* _user)
     return USER_PASS_INCORRECT;
 }
 
-USER_ERR UserConnect(User* _user, char* _pass)
+USER_ERR UserConnect(User* _user, char* _pass) /* initialize list of groups */
 {
     if( _user == NULL )
     {
@@ -109,17 +114,26 @@ USER_ERR UserConnect(User* _user, char* _pass)
         return USER_ALREADY_CONNECT;
     }
 
+    _user->m_groups = ListCreate();
+    if(_user->m_groups == NULL)
+    {
+        return USER_GRP_LIST_FAIL;
+    }
+
     _user->m_isActive = USER_ACTIVE;
     return USER_SUCCESS;
 }
 
-USER_ERR UserDisconnect(User* _user)
+USER_ERR UserDisconnect(User* _user) /* Destroy the list of groups */
 {
     if( _user == NULL )
     {
         return USER_NOT_INITALIZED;
     }
     _user->m_isActive = USER_INACTIVE;
+
+    ListDestroy(&_user->m_groups, GrpListDestroy);
+
     return USER_SUCCESS;
 }
 
@@ -135,6 +149,19 @@ USER_ERR UserGetGrpList(User* _user, List** _grpList)
     return USER_SUCCESS;
 }
 
+USER_ERR UserIsConnectedToGrp(User* _user, char* _grpName)
+{
+    if(_user == NULL || _grpName == NULL)
+    {
+        return USER_NOT_INITALIZED;
+    }
+    if( IsConnectedToGrp(_user, _grpName) == IN_GRP)
+    {
+        return USER_IN_GRP;
+    }
+    return USER_NOT_IN__GRP;
+}
+
 USER_ERR UserGroupJoined(User* _user, char* _grpName)
 {
     char* newGroup;
@@ -142,6 +169,11 @@ USER_ERR UserGroupJoined(User* _user, char* _grpName)
     if(_user == NULL || _grpName == NULL)
     {
         return USER_NOT_INITALIZED;
+    }
+
+    if( IsConnectedToGrp(_user, _grpName) == IN_GRP)
+    {
+        return USER_IN_GRP;
     }
 
     newGroup = malloc(sizeof(char) * (strlen(_grpName) + 1));
@@ -163,13 +195,35 @@ USER_ERR UserGroupJoined(User* _user, char* _grpName)
 
 USER_ERR UserGroupLeft(User* _user, char* _grpName)
 {
-    ListItr currentItr;
-    char* currentGrpName;
+    ListItr grpItr;
+    void* leftGrpName;
 
     if(_user == NULL || _grpName == NULL)
     {
         return USER_NOT_INITALIZED;
     }
+
+    grpItr = FindUsersGrpItr(_user, _grpName);
+    if(grpItr == NULL){
+        return USER_GRP_NOT_FOUND;
+    }
+
+    leftGrpName = ListItrRemove(grpItr);
+    free(leftGrpName);
+    return USER_SUCCESS;
+}
+
+/* -------- HELPER functions -------- */
+
+static void GrpListDestroy(void *_grpName)
+{
+    free(_grpName);
+}
+
+static ListItr FindUsersGrpItr(User* _user, char* _grpName)
+{
+    ListItr currentItr;
+    char* currentGrpName;
 
     currentItr = ListItrBegin(_user->m_groups);
 
@@ -178,18 +232,17 @@ USER_ERR UserGroupLeft(User* _user, char* _grpName)
         currentGrpName = (char*)ListItrGet(currentItr);
         if(strcmp(_grpName, currentGrpName) == 0)
         {
-            ListItrRemove(currentItr);
-            free(currentGrpName);
-            return USER_SUCCESS;
+            return currentItr;
         }
     }
-
-    return USER_GRP_NOT_FOUND;
+    return NULL;
 }
 
-/* -------- HELPER functions -------- */
-
-static void GrpListDestroy(void *_grpName)
+static int IsConnectedToGrp(User* _user, char* _grpName)
 {
-    free(_grpName);
+    if( FindUsersGrpItr(_user, _grpName) != NULL)
+    {
+        return IN_GRP;
+    }
+    return NOT_IN_GRP;
 }

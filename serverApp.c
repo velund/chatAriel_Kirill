@@ -10,6 +10,8 @@
 #include "userMng.h"
 #include "groupMng.h"
 #include "vector.h"
+#include "list.h"
+#include "list_itr.h"
 
 #include "serverAPPUI.h"
 
@@ -52,6 +54,9 @@ typedef enum APP_INTERN_ERR{
     CLIENT_ADD_FAIL,
     CLIENT_ADD_SUCCESS,
 
+    /* CloseClient() */
+    CLIENT_GRP_LIST_REQ_FAIL,
+
     GROUP_LIST_VECTOR_FAIL
 } APP_INTERN_ERR;
 
@@ -71,28 +76,34 @@ static ConnectedClient* ConnClientCreate(ClientInfo _clientInfo);
 static void ConnClientDestroy(ConnectedClient** _client);
 
 /* New Message() */
-static APP_INTERN_ERR CheckMsg(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
-static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
-static void SendAppResp( ServerApp* _serverApp, int _clientID, MSG_TYPE _type, MSG_RESPONSE _response);
+static APP_INTERN_ERR CheckMsg(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
+static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
+static void SendAppResp( ServerApp* _serverApp, size_t _clientID, MSG_TYPE _type, MSG_RESPONSE _response);
 
-static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
-static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
-static APP_INTERN_ERR AddUsernameToClient(ServerApp* _serverApp, int _clientID, char* _userName); /* ON login */
-static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
+static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
+static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
+static APP_INTERN_ERR AssignclientUsername(ServerApp* _serverApp, size_t _clientID, char* _username);
+static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
 
-static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
-static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
-static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
+static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
+static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
+static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
 
-static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res, int _clientID, char* _ip, int _port);
+static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res, size_t _clientID, char* _ip, int _port);
 
 
-static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize);
-static void SendAppGroupList(ServerApp* _serverApp, int _clientID, Vector* _list); 
+static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize);
+static void SendAppGroupList(ServerApp* _serverApp, size_t _clientID, Vector* _list); 
 
 /* NewClient() */
 static APP_INTERN_ERR AddConnectedServerClient(ServerApp* _serverApp, ClientInfo _newClientInfo);
 
+/* CloseClient() */
+static APP_INTERN_ERR DisconnectClientGroups(ConnectedClient* _client, ServerApp* _serverApp);
+
+
+static APP_INTERN_ERR GetClientUsername(ServerApp* _serverApp, size_t _clientID, char* _userNameOut);
+static APP_INTERN_ERR AssignclientUsername(ServerApp* _serverApp, size_t _clientID, char* _username);
 void ListVectorNameDestroy(void* _name);
 
 
@@ -174,7 +185,7 @@ int ServerAppRun(ServerApp* _app)
 
 /*---------------------------------------- TCP Server Functions ----------------------------------------*/
 
-void NewClientFunc(TCPServer* _server, ClientInfo _newClientInfo, void* _serverApp) /* Adds the new client to hashmap and sends back success or fail to client */
+void NewClientFunc(TCPServer* _server, ClientInfo _newClientInfo, void* _serverApp) /* TODO: ? Adds the new client to hashmap and sends back success or fail to client ?*/
 {
     if(AddConnectedServerClient( (ServerApp*)_serverApp, _newClientInfo) != CLIENT_ADD_SUCCESS)
     {
@@ -191,7 +202,7 @@ void NewClientFunc(TCPServer* _server, ClientInfo _newClientInfo, void* _serverA
 
 
 
-void GotMessageFunc(TCPServer* _server, int _clientID, char* _msg, size_t _msgSize, void* _serverApp) /* TODO: combined half message with prev one if needed */
+void GotMessageFunc(TCPServer* _server, size_t _clientID, char* _msg, size_t _msgSize, void* _serverApp) /* TODO: combined half message with prev one if needed */
 {
     char tempBuffer[TEMP_BUF_SIZE]; /* Needed if msg streamed in few parts from TCP */
 
@@ -202,7 +213,7 @@ void GotMessageFunc(TCPServer* _server, int _clientID, char* _msg, size_t _msgSi
     TreatMsg( (ServerApp*)_serverApp, _clientID, _msg, _msgSize);
 }  
 
-void CloseClientFunc(TCPServer* _server, int _clientID, void* _serverApp) /* TODO: client will send leave group */
+void CloseClientFunc(TCPServer* _server, size_t _clientID, void* _serverApp) /* TODO: client will send leave group */
 {
     ConnectedClient* client;
 
@@ -210,28 +221,34 @@ void CloseClientFunc(TCPServer* _server, int _clientID, void* _serverApp) /* TOD
     {
         return;
     }
+
+    DisconnectClientGroups(client, (ServerApp*)_serverApp);
+
     ConnClientDestroy(&client);
-    
 }  
+
+
 
 SRVR_RUN_ACT FailFunc(TCP_ERROR _error, void* _serverApp) /* TODO: treat error? how? */ 
 {
     
 }
 
+
+
 /*---------------------------------------- TCP Server Helper Functions ----------------------------------------*/
 
 static APP_INTERN_ERR AddConnectedServerClient(ServerApp* _serverApp, ClientInfo _newClientInfo)
 {
-    int *newClientSockKey;
+    void *newClientSockKey;
     ConnectedClient *newClientVal;
 
-    newClientSockKey = malloc(sizeof(int));
+    newClientSockKey = malloc(sizeof(size_t));
     if(newClientSockKey == NULL)
     {
         return CLIENT_ADD_FAIL;
     }
-    *newClientSockKey = _newClientInfo.m_clientID;
+    *(size_t*)newClientSockKey = _newClientInfo.m_clientID;
 
     newClientVal = ConnClientCreate(_newClientInfo);
     if(newClientVal == NULL)
@@ -240,19 +257,21 @@ static APP_INTERN_ERR AddConnectedServerClient(ServerApp* _serverApp, ClientInfo
         return CLIENT_ADD_FAIL;
     }
 
-    if( HashMapInsert( ((ServerApp*)(_serverApp))->m_connectedClients, (void*)newClientSockKey, (void*)newClientVal) != MAP_SUCCESS )
+    if( HashMapInsert( ((ServerApp*)(_serverApp))->m_connectedClients, newClientSockKey, (void*)newClientVal) != MAP_SUCCESS )
     {
         free(newClientSockKey);
         ConnClientDestroy(&newClientVal);
         return CLIENT_ADD_FAIL;
     }
+
+    printf("in connected server: %ld connected\n", *(size_t*)newClientSockKey);
     return CLIENT_ADD_SUCCESS;
 }
 
 
 /*---------------------------------------- Server Helper Functions ----------------------------------------*/
 
-static APP_INTERN_ERR CheckClientBuffer(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize, char* _tempBuffer)
+static APP_INTERN_ERR CheckClientBuffer(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize, char* _tempBuffer)
 {
     ConnectedClient* client;
 
@@ -269,7 +288,7 @@ static APP_INTERN_ERR CheckClientBuffer(ServerApp* _serverApp, int _clientID, ch
 }
 
 
-static APP_INTERN_ERR CheckMsg(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+static APP_INTERN_ERR CheckMsg(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
 {
     ConnectedClient* client;
 
@@ -290,7 +309,7 @@ static APP_INTERN_ERR CheckMsg(ServerApp* _serverApp, int _clientID, char* _msg,
     return MSG_SAVED;
 }
 
-static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
 {
     MSG_TYPE currentMsgType;
     
@@ -334,7 +353,7 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
     }
 }
 
-static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
 {
     Vector* nameVector;
     GROUP_MNG_ERR res;
@@ -353,6 +372,10 @@ static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* 
         {
             SendAppResp(_serverApp, _clientID, GROUP_LIST_REC, GROUP_LIST_EMPTY);
         }
+        else if(res == GROUP_MNG_EMPTY)
+        {
+            SendAppResp(_serverApp, _clientID, GROUP_LIST_REC, GROUP_LIST_EMPTY);
+        }
         else
         {
             SendAppResp(_serverApp, _clientID, GROUP_LIST_REC, GROUP_LIST_FAIL);
@@ -364,7 +387,7 @@ static APP_INTERN_ERR SendGroupList(ServerApp* _serverApp, int _clientID, char* 
     VectorDestroy(&nameVector, NULL);
 }
 
-static void SendAppGroupList(ServerApp* _serverApp, int _clientID, Vector* _list)
+static void SendAppGroupList(ServerApp* _serverApp, size_t _clientID, Vector* _list)
 {
     PackedMessage pckMsg;
     size_t msgSize;
@@ -389,7 +412,7 @@ void ListVectorNameDestroy(void* _name)
 
 /* -------- Users -------- */
 
-static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
 {
     USER_MNG_ERR addResult;
     char userName[USER_NAME_LENGTH], userPass[USER_PASS_LENGTH];
@@ -421,7 +444,7 @@ static APP_INTERN_ERR RegisterUser( ServerApp* _serverApp, int _clientID, char* 
     
 }
 
-static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
 {
     USER_MNG_ERR loginRes;
     char userName[USER_NAME_LENGTH], userPass[USER_PASS_LENGTH];
@@ -435,6 +458,7 @@ static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg
 
     loginRes = UserMngConnect(_serverApp->m_userMng, userName, userPass);
 
+    printf("login user: %s connected on %ld \n", userName,_clientID);   
     switch (loginRes)
     {
     case USER_MNG_USER_NOT_FOUND:
@@ -449,7 +473,7 @@ static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg
         SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_ALREADY_CONNECTED);
         break;
     case USER_MNG_SUCCESS:
-        AddUsernameToClient(_serverApp, _clientID, userName);
+        AssignclientUsername(_serverApp, _clientID, userName);
         SendAppResp(_serverApp, _clientID, LOGIN_REC, USER_CONNECTED);
         break;
 
@@ -459,22 +483,10 @@ static APP_INTERN_ERR LoginUser(ServerApp* _serverApp, int _clientID, char* _msg
     }
 }
 
-static APP_INTERN_ERR AddUsernameToClient(ServerApp* _serverApp, int _clientID, char* _userName)
-{
-    ConnectedClient* client;
-
-    if( HashMapFind (_serverApp->m_connectedClients, (void*)&_clientID, (void**)&client) != MAP_SUCCESS)
-    {
-        return GEN_FAIL;
-    }
-
-    strcpy(client->userName, _userName);
-
-    return SUCCESS;
-}
 
 
-static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+
+static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
 {
     USER_MNG_ERR logoutRes;
     char userName[USER_NAME_LENGTH];
@@ -508,9 +520,10 @@ static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _ms
 
 /* -------- GROUPS -------- */
 
-static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
 {
-    USER_MNG_ERR createRes;
+    char userName[USER_NAME_LENGTH];
+
     char groupName[GROUP_NAME_LENGTH];
     char groupIP[IPV4_ADDRESS_SIZE];
     int groupPort;
@@ -522,25 +535,36 @@ static APP_INTERN_ERR CreateGroup(ServerApp* _serverApp, int _clientID, char* _m
         return MSG_READ_ERR;
     }
 
-    createRes = GroupMngAdd(_serverApp->m_groupMng, groupName, groupIP, &groupPort);
-
-    switch (createRes)
+    if( GetClientUsername(_serverApp, _clientID, userName) != SUCCESS )
     {
-    case GROUP_MNG_SUCCESS:
-        SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort);
-        UIGroupCreated(groupName, groupIP, groupPort);
-        break;
-
-    default:
-        SendAppResp(_serverApp, _clientID, GROUP_CREATE_REC, GROUP_CREATE_FAIL);
-        break;
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        return;
     }
+
+    if( GroupMngAdd(_serverApp->m_groupMng, groupName, groupIP, &groupPort) != GROUP_MNG_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_CREATE_REC, GROUP_CREATE_FAIL);
+        return;
+    }   
+    
+
+    if(UserMngGroupJoined(_serverApp->m_userMng, userName, groupName) != USER_MNG_SUCCESS)
+    {
+        GroupMngLeave(_serverApp->m_groupMng, groupName);
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        return ;
+    }
+
+    SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort);
+    UIGroupCreated(groupName, groupIP, groupPort);
+
 }
 
-
-static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
 {
-    USER_MNG_ERR joinRes;
+    USER_MNG_ERR userMngRes;
+
+    char userName[USER_NAME_LENGTH];
 
     char groupName[GROUP_NAME_LENGTH];
     char groupIP[IPV4_ADDRESS_SIZE];
@@ -552,23 +576,40 @@ static APP_INTERN_ERR JoinGroup(ServerApp* _serverApp, int _clientID, char* _msg
         UIMsgRcvErr();
         return MSG_READ_ERR;
     }
-    
-    joinRes = GroupMngJoin(_serverApp->m_groupMng, groupName, groupIP, &groupPort);
 
-    switch (joinRes)
+    if( GetClientUsername(_serverApp, _clientID, userName) != SUCCESS )
     {
-    case GROUP_MNG_SUCCESS: 
-        SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort);
-        UIGroupJoined(_clientID, groupName, groupIP, groupPort);
-        break;
-
-    default:
-        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GROUP_JOIN_FAIL);
-        break;
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        return;
     }
+
+    if(UserMngIsUserInGrp(_serverApp->m_userMng, userName, groupName) == USER_MNG_IN_GRP)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GROUP_USER_CONNECTED);
+        return ;
+    }
+    
+    if (GroupMngJoin(_serverApp->m_groupMng, groupName, groupIP, &groupPort) != GROUP_MNG_SUCCESS)
+    {
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        return ;
+    }
+
+    if(UserMngGroupJoined(_serverApp->m_userMng, userName, groupName) != USER_MNG_SUCCESS)
+    {
+        GroupMngLeave(_serverApp->m_groupMng, groupName);
+        SendAppResp(_serverApp, _clientID, GROUP_JOIN_REC, GEN_ERROR);
+        return ;
+    }
+
+    SendGroupDetails(_serverApp, GROUP_CREATED,_clientID, groupIP, groupPort);
+    UIGroupJoined(_clientID, groupName, groupIP, groupPort);
+
 }
 
-static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, int _clientID, char* _msg, size_t _msgSize)
+
+
+static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, size_t _clientID, char* _msg, size_t _msgSize)
 {
     USER_MNG_ERR leaveRes;
     char groupName[GROUP_NAME_LENGTH];
@@ -596,11 +637,32 @@ static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, int _clientID, char* _ms
     }
 }   
 
+/*---------------------------------------- CloseClient() Helper Functions ----------------------------------------*/
+
+
+static APP_INTERN_ERR DisconnectClientGroups(ConnectedClient* _client, ServerApp* _serverApp)
+{
+    List* grpList;
+    ListItr currentItr;
+
+    if( UserMngGetUserGrps(_serverApp->m_userMng, _client->userName, &grpList) != USER_MNG_SUCCESS)
+    {
+        return CLIENT_GRP_LIST_REQ_FAIL;
+    }
+
+    currentItr = ListItrBegin(grpList);
+    while (currentItr != ListItrEnd(grpList))
+    {
+        GroupMngLeave(_serverApp->m_groupMng, (char*)ListItrGet(currentItr));
+    }
+
+    return SUCCESS;
+}
 
 /*---------------------------------------- Send Functions ----------------------------------------*/
 
 
-static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res,int _clientID, char* _ip, int _port)
+static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res, size_t _clientID, char* _ip, int _port)
 {
     PackedMessage msg;
     size_t pckMsgSize;
@@ -611,7 +673,7 @@ static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res,int _clien
     ProtocolPackedMsgDestroy(msg);
 }
 
-static void SendAppResp( ServerApp* _serverApp, int _clientID, MSG_TYPE _type, MSG_RESPONSE _response)
+static void SendAppResp( ServerApp* _serverApp, size_t _clientID, MSG_TYPE _type, MSG_RESPONSE _response)
 {
     PackedMessage msg;
     size_t pckMsgSize;
@@ -699,8 +761,37 @@ static void ConnClientDestroy(ConnectedClient** _client) /* TODO:  */
         free((*_client)->m_tempBuffer);
     }
 
-    
-
     free(*_client);
     *_client = NULL;
+}
+
+
+/*---------------------------------------- Client Helper Functions ----------------------------------------*/
+
+
+static APP_INTERN_ERR AssignclientUsername(ServerApp* _serverApp, size_t _clientID, char* _username) 
+{
+    ConnectedClient* client;
+
+    if(HashMapFind(_serverApp->m_connectedClients, (void*)&_clientID, (void**)&client) != MAP_SUCCESS)
+    {
+        printf("hash error\n");
+        return GEN_FAIL;
+    }
+    printf("success assign name: %s connected on %ld \n", _username,_clientID);
+    strcpy(client->userName, _username);
+    return SUCCESS;
+}
+
+static APP_INTERN_ERR GetClientUsername(ServerApp* _serverApp, size_t _clientID, char* _userNameOut)
+{
+    ConnectedClient* client;
+
+    if( HashMapFind(_serverApp->m_connectedClients, (void*)&_clientID, (void**)&client) != MAP_SUCCESS )
+    {
+        return USER_FAIL;
+    }
+    strcpy(_userNameOut, client->userName);
+
+    return SUCCESS;
 }
