@@ -1,4 +1,3 @@
-
 #include <string.h> /* memcpy() */
 #include <stdlib.h> /* malloc(), free() */ 
 #include <stdio.h>
@@ -163,11 +162,14 @@ void ServerAppDestroy(ServerApp** _app)
 
 int ServerAppRun(ServerApp* _app)
 {
+    if(_app == NULL)
+    {
+        return 0;
+    }
     UIServerStart();
     ServerRun(_app->m_serverNet);
+    return 1;
 }
-
-
 
 
 /*---------------------------------------- TCP Server Functions ----------------------------------------*/
@@ -180,7 +182,7 @@ void NewClientFunc(TCPServer* _server, ClientInfo _newClientInfo, void* _serverA
         {
             UIClientConnFail(_newClientInfo);
         }
-        /*SendAppResp(_serverApp, _newClientInfo.m_clientID, CONN_REC, CONN_FAIL);*/
+        /*SendAppResp(_serverApp, _newClientInfo.m_clientID, CONN_REC, CONN_FAIL);*/ 
         return;
     }
     /*SendAppResp(_serverApp, _newClientInfo.m_clientID, CONN_REC, CONN_SUCCESS);*/
@@ -197,7 +199,7 @@ void GotMessageFunc(TCPServer* _server, int _clientID, char* _msg, size_t _msgSi
     {
         return;
     }*/
-    TreatMsg( (ServerApp*)_serverApp, _clientID, _msg, _msgSize); /* TODO:  list of groups */
+    TreatMsg( (ServerApp*)_serverApp, _clientID, _msg, _msgSize);
 }  
 
 void CloseClientFunc(TCPServer* _server, int _clientID, void* _serverApp) /* TODO: client will send leave group */
@@ -245,58 +247,6 @@ static APP_INTERN_ERR AddConnectedServerClient(ServerApp* _serverApp, ClientInfo
         return CLIENT_ADD_FAIL;
     }
     return CLIENT_ADD_SUCCESS;
-}
-
-
-/*---------------------------------------- Helper Functions ----------------------------------------*/
-
-
-static AppFunctions CreateFunc(ServerApp* _serverApp)
-{
-    AppFunctions appFunc;
-
-    appFunc.m_newClientFunc = NewClientFunc;
-    appFunc.m_newClientActContext = (void*)_serverApp;
-
-    appFunc.m_gotNewMessageFunc = GotMessageFunc;
-    appFunc.m_newMsgActContext = (void*)_serverApp;
-
-    appFunc.m_closeClientFunc = CloseClientFunc;
-    appFunc.m_closeClientContext = (void*)_serverApp;
-
-    appFunc.m_failFunc = FailFunc;
-    appFunc.m_failContext = (void*)_serverApp;
-
-    return appFunc;
-}
-
-static ConnectedClient* ConnClientCreate(ClientInfo _clientInfo)
-{
-    ConnectedClient* newClient;
-
-    newClient = malloc(sizeof(ConnectedClient));
-    if(newClient == NULL)
-    {
-        return NULL;
-    }
-
-    newClient->m_clientInfo = _clientInfo;
-    newClient->m_tempBuffer = NULL;
-    return newClient;
-}
-
-static void ConnClientDestroy(ConnectedClient** _client)
-{
-    if(_client == NULL || *_client == NULL)
-    {
-        return;
-    }
-    if((*_client)->m_tempBuffer != NULL)
-    {
-        free((*_client)->m_tempBuffer);
-    }
-    free(*_client);
-    *_client = NULL;
 }
 
 
@@ -360,7 +310,6 @@ static APP_INTERN_ERR TreatMsg(ServerApp* _serverApp, int _clientID, char* _msg,
         LogoutUser(_serverApp, _clientID, _msg, _msgSize);
         break;
 
-    
     case GROUP_LIST_REQ: 
         SendGroupList(_serverApp, _clientID, _msg, _msgSize);
         break;
@@ -547,6 +496,7 @@ static APP_INTERN_ERR LogoutUser(ServerApp* _serverApp, int _clientID, char* _ms
     
     case USER_MNG_SUCCESS:
         SendAppResp(_serverApp, _clientID, LOGOUT_REC, USER_DISCONNECTED);
+
         break;
 
     default:
@@ -636,6 +586,7 @@ static APP_INTERN_ERR LeaveGroup(ServerApp* _serverApp, int _clientID, char* _ms
     {
     case GROUP_MNG_SUCCESS:
         SendAppResp(_serverApp, _clientID, GROUP_LEAVE_REC, GROUP_LEFT);
+        GroupMngLeave(_serverApp->m_groupMng, groupName); /* TODO: error? */
         UIGroupLeft(_clientID, groupName);
         break;
 
@@ -657,7 +608,6 @@ static void SendGroupDetails(ServerApp* _serverApp, MSG_RESPONSE _res,int _clien
     msg = ProtocolPackGroupDetails(GROUP_CREATE_REC, _res, _ip, _port, &pckMsgSize);
 
     ServerSend(_serverApp->m_serverNet,_clientID, msg, pckMsgSize);
-    printf("step\n");
     ProtocolPackedMsgDestroy(msg);
 }
 
@@ -674,7 +624,7 @@ static void SendAppResp( ServerApp* _serverApp, int _clientID, MSG_TYPE _type, M
 }
 
 
-/*---------------------------------------- Hash Functions ----------------------------------------*/
+/*---------------------------------------- Hash Helper Functions ----------------------------------------*/
 
 size_t HashClientKey(void* _clientID)
 {
@@ -698,4 +648,59 @@ static void ConnClientHashKeyDestroy(void *_key)
 static void ConnClientHashDestroy(void *_connClient)
 {
     ConnClientDestroy( (ConnectedClient**) &_connClient);
+}
+
+/*---------------------------------------- Create Helper Functions ----------------------------------------*/
+
+
+static AppFunctions CreateFunc(ServerApp* _serverApp)
+{
+    AppFunctions appFunc;
+
+    appFunc.m_newClientFunc = NewClientFunc;
+    appFunc.m_newClientActContext = (void*)_serverApp;
+
+    appFunc.m_gotNewMessageFunc = GotMessageFunc;
+    appFunc.m_newMsgActContext = (void*)_serverApp;
+
+    appFunc.m_closeClientFunc = CloseClientFunc;
+    appFunc.m_closeClientContext = (void*)_serverApp;
+
+    appFunc.m_failFunc = FailFunc;
+    appFunc.m_failContext = (void*)_serverApp;
+
+    return appFunc;
+}
+
+static ConnectedClient* ConnClientCreate(ClientInfo _clientInfo)
+{
+    ConnectedClient* newClient;
+
+    newClient = malloc(sizeof(ConnectedClient));
+    if(newClient == NULL)
+    {
+        return NULL;
+    }
+
+    newClient->m_clientInfo = _clientInfo;
+    newClient->m_tempBuffer = NULL;
+    return newClient;
+}
+
+static void ConnClientDestroy(ConnectedClient** _client) /* TODO:  */
+{
+    if(_client == NULL || *_client == NULL)
+    {
+        return;
+    }
+
+    if((*_client)->m_tempBuffer != NULL)
+    {
+        free((*_client)->m_tempBuffer);
+    }
+
+    
+
+    free(*_client);
+    *_client = NULL;
 }
